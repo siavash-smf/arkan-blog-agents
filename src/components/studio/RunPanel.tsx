@@ -245,7 +245,7 @@ export function RunPanel({ onUnauthorized }: { onUnauthorized: () => void }) {
                   {open && s.output != null && (
                     <pre
                       dir="ltr"
-                      className="mb-2 mr-14 max-h-80 overflow-auto rounded-xl bg-ink p-4 text-xs leading-5 text-emerald-300"
+                      className="mb-2 mr-14 max-h-80 overflow-auto rounded-xl bg-pine-dark p-4 text-xs leading-5 text-bone/90"
                     >
                       {typeof s.output === "string"
                         ? s.output

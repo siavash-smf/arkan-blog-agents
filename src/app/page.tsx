@@ -47,7 +47,7 @@ export default function HomePage() {
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(700px 320px at 85% -10%, rgba(59,99,243,0.10), transparent), radial-gradient(600px 280px at 10% 110%, rgba(59,99,243,0.06), transparent)",
+              "radial-gradient(700px 320px at 85% -10%, rgba(20,58,50,0.10), transparent), radial-gradient(600px 280px at 10% 110%, rgba(20,58,50,0.06), transparent)",
           }}
         />
         <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-16 text-center sm:px-6 sm:pt-24">
@@ -140,12 +140,12 @@ export default function HomePage() {
 
       {/* ── CTA پایانی ───────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <div className="flex flex-col items-center justify-between gap-6 rounded-xl2 bg-ink px-8 py-10 text-center shadow-overlay sm:flex-row sm:text-right">
+        <div className="flex flex-col items-center justify-between gap-6 rounded-xl2 bg-pine px-8 py-10 text-center shadow-overlay sm:flex-row sm:text-right">
           <div>
             <h2 className="text-xl font-extrabold text-white">
               اولین مقاله را همین حالا تولید کنید
             </h2>
-            <p className="mt-2 text-sm leading-7 text-slate-300">
+            <p className="mt-2 text-sm leading-7 text-bone/75">
               موضوع بدهید یا انتخاب را به ایده‌یاب بسپارید؛ چند دقیقه بعد مقاله‌ی
               سئوشده آماده است.
             </p>

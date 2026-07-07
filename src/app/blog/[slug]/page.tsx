@@ -131,11 +131,11 @@ export default async function PostPage({ params }: Props) {
         </section>
       )}
 
-      <aside className="mt-10 rounded-xl2 bg-ink p-8 text-center shadow-overlay">
+      <aside className="mt-10 rounded-xl2 bg-pine p-8 text-center shadow-overlay">
         <p className="text-lg font-extrabold text-white">
           برای بررسی وضعیت کسب‌وکار شما، گفت‌وگوی اولیه رایگان است.
         </p>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-slate-300">
+        <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-bone/75">
           تیم آرکان ظرف ۲۴ ساعت کاری با شما تماس می‌گیرد.
         </p>
         <a

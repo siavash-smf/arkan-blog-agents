@@ -2,22 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
-/* فونت وزیرمتن با next/font (self-hosted) در layout.tsx بارگذاری می‌شود */
+/* فونت‌های برند (استعداد/وزیرمتن) با next/font در layout.tsx بارگذاری می‌شوند */
 
 body {
   @apply bg-surface-dim text-ink antialiased;
-  font-feature-settings: "ss01";
 }
 
-/* فوکس قابل‌مشاهده برای ناوبری با کیبورد */
+/* عناوین با فونت استعداد و رنگ کاج — مثل سایت اصلی */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-estedad), var(--font-vazirmatn), sans-serif;
+}
+
+/* فوکوس قابل‌مشاهده برای ناوبری با کیبورد — تأکید برنجی برند */
 :focus-visible {
-  outline: 2px solid theme("colors.brand.500");
+  outline: 2px solid theme("colors.brass.DEFAULT");
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 ::selection {
-  background: theme("colors.brand.100");
+  background: theme("colors.sand");
 }
 
 /* احترام به prefers-reduced-motion */
@@ -31,7 +35,7 @@ body {
   }
 }
 
-/* ── استایل بدنه‌ی مقاله (خروجی مارک‌داون) ─────────────────── */
+/* ── استایل بدنه‌ی مقاله (خروجی مارک‌داون) — پالت برند آرکان ─────── */
 
 .prose-fa {
   @apply text-[1.0625rem] leading-9 text-ink-soft;
@@ -40,13 +44,13 @@ body {
   @apply mt-0;
 }
 .prose-fa h1 {
-  @apply mb-6 mt-2 text-3xl font-black leading-[1.35] text-ink sm:text-4xl sm:leading-[1.3];
+  @apply mb-6 mt-2 text-3xl font-bold leading-[1.35] text-pine sm:text-4xl sm:leading-[1.3];
 }
 .prose-fa h2 {
-  @apply mb-4 mt-12 border-r-4 border-brand-500 pr-4 text-2xl font-extrabold leading-snug text-ink;
+  @apply mb-4 mt-12 border-r-4 border-brass pr-4 text-2xl font-bold leading-snug text-pine;
 }
 .prose-fa h3 {
-  @apply mb-3 mt-8 text-lg font-bold text-ink;
+  @apply mb-3 mt-8 text-lg font-bold text-pine;
 }
 .prose-fa p {
   @apply mb-5;
@@ -56,35 +60,35 @@ body {
   @apply mb-5 space-y-2 pr-6;
 }
 .prose-fa ul {
-  @apply list-disc marker:text-brand-400;
+  @apply list-disc marker:text-brass;
 }
 .prose-fa ol {
-  @apply list-decimal marker:font-bold marker:text-brand-500;
+  @apply list-decimal marker:font-bold marker:text-brass;
 }
 .prose-fa blockquote {
-  @apply my-6 rounded-l-xl border-r-4 border-brand-500 bg-brand-50 px-5 py-4 text-ink-soft;
+  @apply my-6 rounded-l-xl border-r-4 border-pine bg-sand px-5 py-4 text-ink-soft;
 }
 .prose-fa blockquote p:last-child {
   @apply mb-0;
 }
 .prose-fa a {
-  @apply font-medium text-brand-600 underline decoration-brand-300 underline-offset-4 transition-colors hover:text-brand-700;
+  @apply font-medium text-brass underline decoration-brass/40 underline-offset-4 transition-colors hover:text-brass-dark;
 }
 .prose-fa strong {
-  @apply font-extrabold text-ink;
+  @apply font-bold text-pine;
 }
 .prose-fa hr {
   @apply my-10 border-surface-line;
 }
 .prose-fa table {
-  @apply mb-6 w-full border-collapse overflow-hidden rounded-xl text-sm;
+  @apply mb-6 w-full border-collapse overflow-hidden text-sm;
 }
 .prose-fa th {
-  @apply border border-surface-line bg-surface-dim px-3 py-2 font-bold text-ink;
+  @apply border border-surface-line bg-sand px-3 py-2 font-bold text-pine;
 }
 .prose-fa td {
   @apply border border-surface-line px-3 py-2;
 }
 .prose-fa code {
-  @apply rounded bg-surface-dim px-1.5 py-0.5 text-[0.9em] text-brand-700;
+  @apply rounded bg-sand px-1.5 py-0.5 text-[0.9em] text-pine;
 }

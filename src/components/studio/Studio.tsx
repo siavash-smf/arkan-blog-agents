@@ -86,7 +86,7 @@ export function Studio() {
               onClick={() => setTab(t.id)}
               className={`inline-flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all ${
                 tab === t.id
-                  ? "bg-ink text-white shadow-card"
+                  ? "bg-pine text-bone shadow-card"
                   : "text-ink-muted hover:bg-surface-dim hover:text-ink"
               }`}
             >
