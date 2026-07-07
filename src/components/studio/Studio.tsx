@@ -5,6 +5,7 @@ import { RunPanel } from "./RunPanel";
 import { PostsPanel } from "./PostsPanel";
 import { LessonsPanel } from "./LessonsPanel";
 import { getStudioPassword, setStudioPassword } from "./api";
+import { IconBrain, IconFactory, IconFileText, IconLock } from "@/components/ui/icons";
 
 /**
  * استودیوی محتوا — سه تب:
@@ -15,10 +16,10 @@ import { getStudioPassword, setStudioPassword } from "./api";
 
 type Tab = "run" | "posts" | "lessons";
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "run", label: "🏭 خط تولید" },
-  { id: "posts", label: "📄 پست‌ها" },
-  { id: "lessons", label: "🧠 درس‌ها" },
+const TABS: { id: Tab; label: string; icon: (p: { className?: string }) => JSX.Element }[] = [
+  { id: "run", label: "خط تولید", icon: IconFactory },
+  { id: "posts", label: "پست‌ها", icon: IconFileText },
+  { id: "lessons", label: "درس‌ها", icon: IconBrain },
 ];
 
 export function Studio() {
@@ -32,48 +33,73 @@ export function Studio() {
   if (needsPassword) {
     return (
       <main className="mx-auto max-w-sm px-4 py-24">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h1 className="mb-4 text-lg font-bold">ورود به استودیو</h1>
+        <form
+          className="rounded-xl2 border border-surface-line bg-surface p-7 shadow-raised"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setStudioPassword(passwordInput);
+            setNeedsPassword(false);
+          }}
+        >
+          <div className="mb-5 flex items-center gap-3">
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+              <IconLock className="h-5 w-5" />
+            </span>
+            <div>
+              <h1 className="font-extrabold text-ink">ورود به استودیو</h1>
+              <p className="text-xs text-ink-muted">این بخش با رمز محافظت می‌شود.</p>
+            </div>
+          </div>
+
+          <label htmlFor="studio-password" className="mb-1.5 block text-sm font-bold text-ink">
+            رمز استودیو
+          </label>
           <input
+            id="studio-password"
             type="password"
             dir="ltr"
+            autoFocus
             value={passwordInput}
             onChange={(e) => setPasswordInput(e.target.value)}
-            placeholder="رمز استودیو"
-            className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2"
+            className="mb-4 w-full rounded-xl border border-surface-line bg-surface-dim px-4 py-2.5 transition-colors focus:border-brand-400 focus:bg-surface"
           />
           <button
-            onClick={() => {
-              setStudioPassword(passwordInput);
-              setNeedsPassword(false);
-            }}
-            className="w-full rounded-lg bg-brand-600 py-2 font-bold text-white hover:bg-brand-700"
+            type="submit"
+            className="w-full cursor-pointer rounded-xl bg-brand-600 py-2.5 font-bold text-white transition-colors hover:bg-brand-700"
           >
             ورود
           </button>
-        </div>
+        </form>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
-      <div className="mb-6 flex items-center gap-2">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
-              tab === t.id
-                ? "bg-ink text-white"
-                : "bg-white text-slate-600 hover:bg-slate-100"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <div className="mb-8 flex flex-wrap items-center gap-2">
+        <div className="flex rounded-xl border border-surface-line bg-surface p-1 shadow-card" role="tablist">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              role="tab"
+              aria-selected={tab === t.id}
+              onClick={() => setTab(t.id)}
+              className={`inline-flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all ${
+                tab === t.id
+                  ? "bg-ink text-white shadow-card"
+                  : "text-ink-muted hover:bg-surface-dim hover:text-ink"
+              }`}
+            >
+              <t.icon className="h-4 w-4" />
+              {t.label}
+            </button>
+          ))}
+        </div>
         {getStudioPassword() && (
-          <span className="mr-auto text-xs text-slate-400">🔐 رمز ذخیره شده</span>
+          <span className="mr-auto inline-flex items-center gap-1.5 text-xs text-ink-muted">
+            <IconLock className="h-3.5 w-3.5" />
+            رمز ذخیره شده
+          </span>
         )}
       </div>
 

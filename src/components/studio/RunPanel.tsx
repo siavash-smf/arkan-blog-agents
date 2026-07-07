@@ -3,6 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { studioFetch } from "./api";
 import type { PipelineRun, StepRecord } from "@/lib/store/types";
+import {
+  AGENT_ICONS,
+  IconAlert,
+  IconCheck,
+  IconChevronDown,
+  IconClock,
+  IconPlay,
+  IconSpinner,
+  IconX,
+} from "@/components/ui/icons";
 
 /**
  * پنل «خط تولید» — نقطه‌ی شروع پایپ‌لاین و نمایش زنده‌ی گام‌ها.
@@ -12,12 +22,31 @@ import type { PipelineRun, StepRecord } from "@/lib/store/types";
  * می‌کند، همین polling ساده یک نمای زنده می‌سازد — بدون WebSocket.
  */
 
-const STATUS_ICON: Record<StepRecord["status"], string> = {
-  running: "⏳",
-  done: "✅",
-  error: "❌",
-  skipped: "⏭️",
-};
+function StepStatusBadge({ status }: { status: StepRecord["status"] }) {
+  if (status === "running")
+    return (
+      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-600 ring-4 ring-brand-100">
+        <IconSpinner className="h-4 w-4" />
+      </span>
+    );
+  if (status === "done")
+    return (
+      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-success-soft text-success">
+        <IconCheck className="h-4 w-4" />
+      </span>
+    );
+  if (status === "error")
+    return (
+      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-danger-soft text-danger">
+        <IconX className="h-4 w-4" />
+      </span>
+    );
+  return (
+    <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface-dim text-ink-muted">
+      <IconClock className="h-4 w-4" />
+    </span>
+  );
+}
 
 export function RunPanel({ onUnauthorized }: { onUnauthorized: () => void }) {
   const [topicHint, setTopicHint] = useState("");
@@ -96,108 +125,186 @@ export function RunPanel({ onUnauthorized }: { onUnauthorized: () => void }) {
 
   return (
     <div className="space-y-6">
-      {/* فرم شروع */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <h2 className="mb-1 font-bold">اجرای جدید پایپ‌لاین</h2>
-        <p className="mb-4 text-sm text-slate-500">
+      {/* ── فرم شروع ── */}
+      <section className="rounded-xl2 border border-surface-line bg-surface p-6 shadow-card sm:p-7">
+        <h2 className="text-title text-ink">اجرای جدید پایپ‌لاین</h2>
+        <p className="mb-5 mt-1 text-sm text-ink-muted">
           موضوع دادن اختیاری است — اگر خالی بگذارید، ایده‌یاب خودش موضوع پیدا می‌کند.
         </p>
-        <div className="flex gap-3">
-          <input
-            value={topicHint}
-            onChange={(e) => setTopicHint(e.target.value)}
-            placeholder="مثلاً: قیمت‌گذاری خدمات برای کسب‌وکارهای کوچک"
-            className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5"
-            disabled={busy}
-          />
+
+        <form
+          className="flex flex-col gap-3 sm:flex-row"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!busy) start();
+          }}
+        >
+          <div className="flex-1">
+            <label htmlFor="topic-hint" className="sr-only">
+              موضوع پیشنهادی (اختیاری)
+            </label>
+            <input
+              id="topic-hint"
+              value={topicHint}
+              onChange={(e) => setTopicHint(e.target.value)}
+              placeholder="مثلاً: قیمت‌گذاری خدمات برای کسب‌وکارهای کوچک"
+              className="w-full rounded-xl border border-surface-line bg-surface-dim px-4 py-3 transition-colors placeholder:text-ink-muted/60 focus:border-brand-400 focus:bg-surface"
+              disabled={busy}
+            />
+          </div>
           <button
-            onClick={start}
+            type="submit"
             disabled={busy}
-            className="rounded-xl bg-brand-600 px-6 py-2.5 font-bold text-white hover:bg-brand-700 disabled:opacity-50"
+            className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-600 px-7 py-3 font-bold text-white shadow-card transition-all hover:bg-brand-700 hover:shadow-raised disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {busy ? "در حال اجرا…" : "شروع 🚀"}
+            {busy ? (
+              <>
+                <IconSpinner className="h-4 w-4" />
+                در حال اجرا…
+              </>
+            ) : (
+              <>
+                <IconPlay className="h-4 w-4" />
+                شروع
+              </>
+            )}
           </button>
-        </div>
+        </form>
+
         {error && (
-          <div className="mt-3 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">
+          <div
+            role="alert"
+            className="mt-4 flex items-start gap-2 rounded-xl bg-danger-soft px-4 py-3 text-sm leading-6 text-danger"
+          >
+            <IconAlert className="mt-0.5 h-4 w-4 shrink-0" />
             {error}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* نمای زنده‌ی گام‌ها */}
+      {/* ── تایم‌لاین زنده ── */}
       {run && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-bold">
-              {run.status === "running" && "🏃 در حال اجرا"}
-              {run.status === "done" && "🎉 اجرا کامل شد"}
-              {run.status === "error" && "💥 اجرا با خطا متوقف شد"}
+        <section className="rounded-xl2 border border-surface-line bg-surface p-6 shadow-card sm:p-7">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="inline-flex items-center gap-2 text-title text-ink">
+              {run.status === "running" && (
+                <>
+                  <span className="inline-block h-2.5 w-2.5 animate-pulse-dot rounded-full bg-brand-500" />
+                  در حال اجرا
+                </>
+              )}
+              {run.status === "done" && (
+                <>
+                  <IconCheck className="h-5 w-5 text-success" />
+                  اجرا کامل شد
+                </>
+              )}
+              {run.status === "error" && (
+                <>
+                  <IconX className="h-5 w-5 text-danger" />
+                  اجرا با خطا متوقف شد
+                </>
+              )}
             </h2>
             {run.topicHint && (
-              <span className="text-xs text-slate-400">موضوع: {run.topicHint}</span>
+              <span className="rounded-full bg-surface-dim px-3 py-1 text-xs text-ink-muted">
+                موضوع: {run.topicHint}
+              </span>
             )}
           </div>
 
-          <ol className="space-y-2">
-            {run.steps.map((s, i) => (
-              <li key={i} className="rounded-xl border border-slate-100 bg-slate-50">
-                <button
-                  className="flex w-full items-center gap-3 px-4 py-3 text-right"
-                  onClick={() => setExpandedStep(expandedStep === i ? null : i)}
-                >
-                  <span>{STATUS_ICON[s.status]}</span>
-                  <span className="font-medium">{s.label}</span>
-                  <span className="mr-auto truncate text-xs text-slate-500">
-                    {s.summary}
-                  </span>
-                </button>
-                {expandedStep === i && s.output != null && (
-                  <pre
-                    dir="ltr"
-                    className="max-h-80 overflow-auto border-t border-slate-200 bg-ink p-4 text-xs leading-5 text-green-300"
+          {/* تایم‌لاین عمودی با خط اتصال */}
+          <ol className="relative space-y-1 pr-[1.125rem] before:absolute before:bottom-5 before:right-[2.22rem] before:top-5 before:w-px before:bg-surface-line">
+            {run.steps.map((s, i) => {
+              const AgentIcon = AGENT_ICONS[s.agent];
+              const open = expandedStep === i;
+              return (
+                <li key={i} className="relative animate-fade-up">
+                  <button
+                    onClick={() => setExpandedStep(open ? null : i)}
+                    aria-expanded={open}
+                    className="flex w-full cursor-pointer items-center gap-4 rounded-xl px-2 py-3 text-right transition-colors hover:bg-surface-dim"
                   >
-                    {typeof s.output === "string"
-                      ? s.output
-                      : JSON.stringify(s.output, null, 2)}
-                  </pre>
-                )}
-              </li>
-            ))}
+                    <span className="relative z-10">
+                      <StepStatusBadge status={s.status} />
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
+                      <span className="inline-flex shrink-0 items-center gap-2 font-bold text-ink">
+                        {AgentIcon && <AgentIcon className="h-4 w-4 text-ink-muted" />}
+                        {s.label}
+                      </span>
+                      <span className="truncate text-xs leading-5 text-ink-muted">{s.summary}</span>
+                    </span>
+                    {s.output != null && (
+                      <IconChevronDown
+                        className={`h-4 w-4 shrink-0 text-ink-muted transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+                      />
+                    )}
+                  </button>
+
+                  {open && s.output != null && (
+                    <pre
+                      dir="ltr"
+                      className="mb-2 mr-14 max-h-80 overflow-auto rounded-xl bg-ink p-4 text-xs leading-5 text-emerald-300"
+                    >
+                      {typeof s.output === "string"
+                        ? s.output
+                        : JSON.stringify(s.output, null, 2)}
+                    </pre>
+                  )}
+                </li>
+              );
+            })}
           </ol>
 
           {run.error && (
-            <div className="mt-3 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">
+            <div
+              role="alert"
+              className="mt-4 flex items-start gap-2 rounded-xl bg-danger-soft px-4 py-3 text-sm leading-6 text-danger"
+            >
+              <IconAlert className="mt-0.5 h-4 w-4 shrink-0" />
               {run.error}
             </div>
           )}
-        </div>
+        </section>
       )}
 
-      {/* تاریخچه */}
+      {/* ── تاریخچه ── */}
       {history.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="mb-3 font-bold">اجراهای اخیر</h2>
-          <div className="space-y-2 text-sm">
+        <section className="rounded-xl2 border border-surface-line bg-surface p-6 shadow-card sm:p-7">
+          <h2 className="mb-4 text-title text-ink">اجراهای اخیر</h2>
+          <div className="divide-y divide-surface-line">
             {history.map((h) => (
               <button
                 key={h.id}
-                onClick={() => setRun(h)}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-right hover:bg-slate-50"
+                onClick={() => {
+                  setRun(h);
+                  setExpandedStep(null);
+                }}
+                className="flex w-full cursor-pointer items-center gap-3 px-2 py-3 text-right text-sm transition-colors hover:bg-surface-dim"
               >
-                <span>
-                  {h.status === "done" ? "✅" : h.status === "error" ? "❌" : "⏳"}
-                </span>
-                <span className="text-slate-600">
+                {h.status === "done" ? (
+                  <IconCheck className="h-4 w-4 shrink-0 text-success" />
+                ) : h.status === "error" ? (
+                  <IconX className="h-4 w-4 shrink-0 text-danger" />
+                ) : (
+                  <IconSpinner className="h-4 w-4 shrink-0 text-brand-500" />
+                )}
+                <span className="min-w-0 flex-1 truncate text-ink-soft">
                   {h.topicHint || "بدون موضوع (انتخاب آزاد ایده‌یاب)"}
                 </span>
-                <span className="mr-auto text-xs text-slate-400">
-                  {new Date(h.createdAt).toLocaleString("fa-IR")}
-                </span>
+                <time className="shrink-0 text-xs text-ink-muted">
+                  {new Date(h.createdAt).toLocaleString("fa-IR", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </time>
               </button>
             ))}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );
