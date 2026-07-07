@@ -20,7 +20,14 @@ function client(): SupabaseClient {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
+    {
+      auth: { persistSession: false },
+      // مهم: fetch سوپابیس را no-store می‌کنیم تا کش داده‌ی Next عکس لحظه‌ای
+      // قدیمی را نگه ندارد؛ وگرنه پست‌های جدید در استودیو دیده نمی‌شوند.
+      global: {
+        fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+      },
+    }
   );
 }
 
