@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* فونت وزیرمتن از CDN — برای سادگی پروژه‌ی درسی */
+@import url("https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css");
+
+body {
+  @apply bg-slate-50 text-ink antialiased;
+}
+
+/* استایل بدنه‌ی مقاله (خروجی مارک‌داون) */
+.prose-fa {
+  @apply leading-8 text-slate-800;
+}
+.prose-fa h1 {
+  @apply mb-6 mt-2 text-3xl font-black leading-snug text-ink;
+}
+.prose-fa h2 {
+  @apply mb-3 mt-10 text-xl font-bold text-ink;
+}
+.prose-fa h3 {
+  @apply mb-2 mt-6 text-lg font-bold text-ink;
+}
+.prose-fa p {
+  @apply mb-4;
+}
+.prose-fa ul,
+.prose-fa ol {
+  @apply mb-4 pr-6;
+}
+.prose-fa ul {
+  @apply list-disc;
+}
+.prose-fa ol {
+  @apply list-decimal;
+}
+.prose-fa li {
+  @apply mb-1;
+}
+.prose-fa blockquote {
+  @apply mb-4 border-r-4 border-brand-500 bg-brand-50 px-4 py-2 text-slate-700;
+}
+.prose-fa a {
+  @apply text-brand-600 underline;
+}
+.prose-fa strong {
+  @apply font-bold text-ink;
+}

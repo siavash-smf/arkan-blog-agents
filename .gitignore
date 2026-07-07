@@ -1,0 +1,21 @@
+# وابستگی‌ها
+/node_modules
+
+# خروجی Next.js
+/.next/
+/out/
+
+# متغیرهای محیطی (کلیدها هرگز کامیت نشوند)
+.env
+.env.local
+.env*.local
+
+# Vercel
+.vercel
+
+# سیستم‌عامل
+.DS_Store
+
+# تایپ‌اسکریپت
+*.tsbuildinfo
+next-env.d.ts
