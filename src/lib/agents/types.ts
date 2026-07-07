@@ -80,12 +80,32 @@ export type Review = z.infer<typeof ReviewSchema>;
 
 /* ── ۶. متخصص سئو ───────────────────────────────────────── */
 
+/**
+ * کوتاه‌کردن قطعی متن تا سقف کاراکتر — ترجیحاً روی مرز کلمه.
+ *
+ * نکته‌ی آموزشی: طول رشته یک محدودیتِ کاملاً قطعی است و LLM‌ها (به‌ویژه در
+ * فارسی) نمی‌توانند کاراکتر بشمارند. پس به‌جای `.max()` که خروجیِ چند کاراکتر
+ * بلندتر را با استثنا رد می‌کند و کل اجرا را می‌کُشد، همین‌جا در کد مهارش
+ * می‌کنیم. همان اصلِ «کار قطعی را به مدل نسپار» که در seo-checks هم دیدیم.
+ */
+export function clampText(text: string, max: number): string {
+  const t = text.trim();
+  if (t.length <= max) return t;
+  // یک کاراکتر برای «…» کنار می‌گذاریم و تا آخرین فاصله عقب می‌رویم تا وسط کلمه نبُریم
+  const slice = t.slice(0, max - 1);
+  const lastSpace = slice.lastIndexOf(" ");
+  const base = lastSpace > max * 0.6 ? slice.slice(0, lastSpace) : slice;
+  return base.trimEnd() + "…";
+}
+
 export const SeoOutputSchema = z.object({
   slug: z
     .string()
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "اسلاگ باید حروف کوچک انگلیسی و خط تیره باشد"),
-  metaTitle: z.string().min(10).max(70),
-  metaDescription: z.string().min(50).max(170),
+  // سقف طول با clampText مهار می‌شود، نه با رد کردن؛ min برای رد خروجیِ ناقص می‌ماند
+  // (نوشتنِ «بلندتر» کاری است که مدل قابل‌اعتماد انجام می‌دهد، برخلاف شمارش کاراکتر).
+  metaTitle: z.string().min(10).transform((s) => clampText(s, 65)),
+  metaDescription: z.string().min(50).transform((s) => clampText(s, 160)),
   excerpt: z.string().min(30),
   keywords: z.array(z.string()).min(3).max(10),
   faq: z
