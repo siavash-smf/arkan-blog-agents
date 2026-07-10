@@ -68,17 +68,28 @@ export type AgentCallOptions = {
 /** اجرای یک ایجنت با خروجی متنی آزاد */
 export async function runAgentText(opts: AgentCallOptions): Promise<string> {
   const openrouter = getOpenRouter();
-  const result = await generateText({
-    model: openrouter(opts.model ?? defaultModel()),
-    system: opts.system,
-    prompt: opts.prompt,
-    temperature: opts.temperature ?? 0.7,
-    maxOutputTokens: opts.maxOutputTokens ?? 8000,
-  });
-  if (!result.text.trim()) {
-    throw new Error(`ایجنت «${opts.agent}» متنی تولید نکرد.`);
+  const model = openrouter(opts.model ?? defaultModel());
+
+  // پاسخ خالی معمولاً گذراست: بعضی مدل‌ها (مثل Gemini) کل بودجه‌ی توکن را صرف
+  // reasoning می‌کنند و متنی نمی‌ماند، یا API لحظه‌ای خطا می‌دهد. چند بار تلاش
+  // می‌کنیم تا یک خطای گذرا کل پایپ‌لاین را نکُشد.
+  let lastErr = "";
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const result = await generateText({
+        model,
+        system: opts.system,
+        prompt: opts.prompt,
+        temperature: opts.temperature ?? 0.7,
+        maxOutputTokens: opts.maxOutputTokens ?? 8000,
+      });
+      if (result.text.trim()) return result.text;
+      lastErr = "پاسخ خالی بود (احتمالاً بودجه‌ی توکن صرف reasoning شد)";
+    } catch (err) {
+      lastErr = err instanceof Error ? err.message : String(err);
+    }
   }
-  return result.text;
+  throw new Error(`ایجنت «${opts.agent}» بعد از ۳ تلاش پاسخ معتبری نداد: ${lastErr}`);
 }
 
 /** استخراج اولین شیء JSON از متن (مدل‌ها گاهی دور آن توضیح یا ``` می‌گذارند) */
@@ -112,22 +123,23 @@ export async function runAgentJSON<T>(opts: AgentJSONOptions<T>): Promise<T> {
   let lastError = "";
   for (let attempt = 1; attempt <= 2; attempt++) {
     const retryNote = lastError
-      ? `\n\nتلاش قبلی‌ات JSON نامعتبری داشت. خطا: ${lastError}\nاین بار فقط JSON معتبر مطابق ساختار بده.`
+      ? `\n\nتلاش قبلی‌ات معتبر نبود. خطا: ${lastError}\nاین بار فقط JSON معتبر مطابق ساختار بده.`
       : "";
 
-    const text = await runAgentText({
-      ...opts,
-      prompt: opts.prompt + jsonInstruction + retryNote,
-      // خروجی ساخت‌یافته با دمای پایین‌تر پایدارتر است
-      temperature: opts.temperature ?? 0.4,
-    });
-
+    // فراخوانی داخل try/catch است تا خطای «پاسخ خالی» هم به‌جای شکست کل
+    // پایپ‌لاین، یک تلاش مجدد بشود (نه فقط خطای JSON نامعتبر).
     try {
+      const text = await runAgentText({
+        ...opts,
+        prompt: opts.prompt + jsonInstruction + retryNote,
+        // خروجی ساخت‌یافته با دمای پایین‌تر پایدارتر است
+        temperature: opts.temperature ?? 0.4,
+      });
       const parsed = JSON.parse(extractJson(text));
       return opts.schema.parse(parsed);
     } catch (err) {
       lastError = err instanceof Error ? err.message.slice(0, 500) : String(err);
     }
   }
-  throw new Error(`ایجنت «${opts.agent}» بعد از ۲ تلاش JSON معتبر نداد: ${lastError}`);
+  throw new Error(`ایجنت «${opts.agent}» بعد از ۲ تلاش خروجی معتبر نداد: ${lastError}`);
 }
