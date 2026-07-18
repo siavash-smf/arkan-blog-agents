@@ -3,8 +3,15 @@ import { randomUUID } from "crypto";
 import { z } from "zod";
 import { runAgentJSON } from "@/lib/ai";
 import { getStore, type Post } from "@/lib/store";
-import { CriticOutputSchema, AGENT_IDS, type CriticOutput, type Review } from "./types";
+import {
+  CriticOutputSchema,
+  AGENT_IDS,
+  type CriticOutput,
+  type Review,
+  type SocialReview,
+} from "./types";
 import type { SeoCheck } from "./seo-checks";
+import type { SocialCheck } from "./social-checks";
 
 /**
  * ایجنت ۸ — منتقد (Critic) — موتور خودبهبودی سیستم
@@ -85,6 +92,77 @@ ${input.post.contentMd.slice(0, 6000)}
   "strengths": ["نقطه قوت این اجرا"],
   "weaknesses": ["نقطه ضعف این اجرا"],
   "lessons": [ { "agent": "writer", "lesson": "درس قابل‌اجرا برای اجراهای بعدی" } ]
+}`,
+  });
+
+  await saveLessons(result.lessons, "critic");
+  return result;
+}
+
+/* ── منتقد پایپ‌لاین بازآفرینی ───────────────────────────── */
+
+/**
+ * همان منتقد، برای پایپ‌لاین‌های اجتماعی.
+ *
+ * چرا تابع جدا و نه پارامتر روی runCritic؟ چون ورودی‌ها اساساً فرق دارند
+ * (چند خروجی به‌جای یکی، چک‌های اجتماعی به‌جای سئو) و یکی‌کردنشان یعنی یک
+ * تابع پر از شرط. دو تابع کوتاهِ خوانا بهتر از یک تابع دوکاره است.
+ *
+ * `parts` آرایه است تا هم اجرای بازآفرینی (دو خروجی: اینستاگرام و لینکدین)
+ * و هم پایپ‌لاین تک‌پلتفرمی (یک خروجی) را پوشش دهد.
+ */
+export type SocialCriticPart = {
+  /** برچسب فارسی برای گزارش، مثل «کاروسل اینستاگرام» */
+  label: string;
+  draft: unknown;
+  review: Review | SocialReview;
+  checks: SocialCheck[];
+};
+
+export async function runSocialCritic(input: {
+  /** توضیح یک‌خطی از منشأ این اجرا — مقاله‌ی مبدأ یا موضوع درخواستی */
+  context: string;
+  parts: SocialCriticPart[];
+  revisionRounds: number;
+}): Promise<CriticOutput> {
+  const system = `تو «منتقد» سیستم تولید محتوای آرکان هستی. کارت بهبود خودِ سیستم است، نه این محتوای خاص. از هر اجرا الگو استخراج می‌کنی: چه چیزی خوب کار کرد، چه چیزی نه، و کدام ایجنت باید دفعه‌ی بعد چه‌کار متفاوتی بکند.
+
+این اجرا از نوع «تولید محتوای شبکه‌های اجتماعی» بود.
+
+ایجنت‌های سیستم: ${AGENT_IDS.join(", ")}
+
+قاعده‌ی طلایی درس خوب: کوتاه، قابل‌اجرا و عمومی (برای همه‌ی محتواهای آینده، نه فقط این یکی). مثال خوب: «instagram-writer: در اسلاید اول به‌جای تیتر کلی، خودِ عدد یا ادعای تکان‌دهنده را بگذار». مثال بد: «کاروسل خوب بود».`;
+
+  const section = (part: SocialCriticPart) => `— ${part.label} —
+امتیاز ویراستار: ${part.review.score}/100
+روبریک: ${JSON.stringify(part.review.rubric)}
+ایرادهای باقی‌مانده:
+${part.review.issues.map((i) => `- ${i}`).join("\n") || "- (بدون ایراد)"}
+چک‌های قطعیِ ردشده:
+${part.checks.filter((c) => !c.pass).map((c) => `- ${c.name}: ${c.note}`).join("\n") || "- (همه پاس شدند)"}
+محتوای نهایی:
+${JSON.stringify(part.draft, null, 2).slice(0, 3000)}`;
+
+  const prompt = `گزارش اجرا:
+
+${input.context}
+مجموع دورهای بازنویسی: ${input.revisionRounds}
+
+${input.parts.map(section).join("\n\n")}
+
+این اجرا را تحلیل کن و حداکثر ۳ درس برای بهبود اجراهای بعدی استخراج کن. اگر سیستم عالی کار کرده، درس کمتر بده یا هیچ درس نده — درسِ بی‌ارزش خودش هزینه است.`;
+
+  const result = await runAgentJSON({
+    agent: "critic",
+    system,
+    prompt,
+    temperature: 0.4,
+    schema: CriticOutputSchema,
+    shapeHint: `{
+  "overallScore": 80,
+  "strengths": ["نقطه قوت این اجرا"],
+  "weaknesses": ["نقطه ضعف این اجرا"],
+  "lessons": [ { "agent": "instagram-writer", "lesson": "درس قابل‌اجرا برای اجراهای بعدی" } ]
 }`,
   });
 

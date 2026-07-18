@@ -118,6 +118,16 @@ export type SeoOutput = z.infer<typeof SeoOutputSchema>;
 
 /* ── ۸. منتقد (خودبهبودی) ───────────────────────────────── */
 
+/**
+ * ایجنت‌هایی که می‌توانند «درس» بگیرند.
+ *
+ * قاعده: فقط ایجنت‌هایی که پرامپت دارند. ناشر و منتقد اینجا نیستند چون
+ * کدِ قطعی‌اند یا خودشان درس‌ساز‌ند — درس دادن به آن‌ها بی‌معنی است.
+ *
+ * ⚠️ اگر ایجنت جدیدی ساختی و اینجا اضافه‌اش نکردی، منتقد برایش هیچ درسی
+ * تولید نمی‌کند و هیچ خطایی هم نمی‌بینی: z.enum خروجی را رد می‌کند، یک
+ * retry می‌خورد، شکست می‌خورد، و try/catch گام منتقد آن را قورت می‌دهد.
+ */
 export const AGENT_IDS = [
   "idea-scout",
   "strategist",
@@ -125,6 +135,14 @@ export const AGENT_IDS = [
   "writer",
   "editor",
   "seo",
+  // فاز ۴ — محتوای شبکه‌های اجتماعی
+  "repurposer",
+  "social-idea-scout",
+  "instagram-strategist",
+  "instagram-writer",
+  "linkedin-writer",
+  "reels-writer",
+  "social-editor",
 ] as const;
 
 export const CriticOutputSchema = z.object({
@@ -141,5 +159,133 @@ export const CriticOutputSchema = z.object({
     )
     .max(3),
 });
+
+/* ── فاز ۴: محتوای شبکه‌های اجتماعی ──────────────────────── */
+
+/**
+ * ایده‌ی محتوای اجتماعی — خروجی «ایده‌یاب اجتماعی».
+ *
+ * چرا اسکیمای جدا و نه استفاده از IdeaSchema با یک پارامتر کانال؟
+ * چون IdeaSchema فیلد `searchIntent` دارد و هر سه معیار امتیازدهی ایده‌یاب
+ * بلاگ حول «آیا این را در گوگل جستجو می‌کنند؟» می‌چرخد. برای فید
+ * اینستاگرام این سؤال بی‌معنی است؛ سؤال درست «آیا اسکرول را متوقف
+ * می‌کند؟» است. یک flag روی ایده‌یاب یعنی یک فیلد بی‌معنا در اسکیما
+ * به‌علاوه‌ی پرامپت شاخه‌دار — دو ایجنت کوتاه و صریح بهتر است.
+ */
+export const SocialIdeaSchema = z.object({
+  title: z.string().min(4),
+  /** قلاب پیشنهادی — همان جمله‌ای که اسکرول را متوقف می‌کند */
+  hook: z.string().min(10),
+  /** دردی از مخاطب که این ایده به آن می‌پردازد */
+  painPoint: z.string(),
+  score: z.number().min(0).max(10),
+  reason: z.string(),
+});
+
+export const SocialIdeaScoutOutputSchema = z.object({
+  ideas: z.array(SocialIdeaSchema).min(3),
+});
+
+export type SocialIdea = z.infer<typeof SocialIdeaSchema>;
+
+/* ── بریف و خروجی‌های اجتماعی ────────────────────────────── */
+
+/**
+ * بریف اجتماعی — خروجی «بازآفرین».
+ *
+ * چرا یک بریف مشترک برای هر دو پلتفرم؟ چون پیام باید یکی باشد و فقط
+ * لباسش عوض شود. اگر هر کپی‌رایتر مستقیم از روی مقاله می‌نوشت، دو محتوای
+ * بی‌ربط درمی‌آمد. همان نقشی که BriefSchema در پایپ‌لاین بلاگ دارد.
+ */
+export const SocialBriefSchema = z.object({
+  /** تنها ایده‌ای که ارزش انتقال به فید را دارد */
+  coreMessage: z.string().min(20),
+  audience: z.string(),
+  /** هر نکته یک «ادعا»ی مستقل، نه یک تیتر */
+  keyPoints: z.array(z.string()).min(3).max(6),
+  /** زاویه‌ی قلاب — درد مخاطب، نه موضوع مقاله */
+  hookAngle: z.string().min(10),
+  /** شاهد/مثال، فقط از دل مقاله‌ی مبدأ */
+  proofPoint: z.string(),
+  cta: z.string(),
+});
+
+export type SocialBrief = z.infer<typeof SocialBriefSchema>;
+
+/** یک اسلاید کاروسل — سقف طول‌ها مثل سئو با clampText مهار می‌شود */
+export const SlideSchema = z.object({
+  kicker: z.string().transform((s) => clampText(s, 24)),
+  heading: z.string().min(3).transform((s) => clampText(s, 40)),
+  text: z.string().transform((s) => clampText(s, 140)),
+});
+
+export const InstagramCarouselSchema = z.object({
+  title: z.string().min(4),
+  /** ۱۲۵ کاراکتر اولش قبل از «... بیشتر» دیده می‌شود */
+  caption: z.string().min(80).transform((s) => clampText(s, 2200)),
+  // ⚠️ بازه‌ی ۵–۸ در constraint جدول social_posts هم هست (supabase/schema.sql).
+  //    اگر یکی را عوض کردی، آن یکی را هم عوض کن.
+  slides: z.array(SlideSchema).min(5).max(8),
+  hashtags: z.array(z.string()).min(8).max(15),
+  cta: z.string().min(5),
+});
+
+export type InstagramCarousel = z.infer<typeof InstagramCarouselSchema>;
+
+export const LinkedInPostSchema = z.object({
+  title: z.string().min(4),
+  /** بدنه‌ی پست؛ پاراگراف‌ها با خط خالی از هم جدا می‌شوند */
+  body: z.string().min(400).transform((s) => clampText(s, 2800)),
+  hashtags: z.array(z.string()).min(3).max(5),
+  cta: z.string().min(5),
+});
+
+export type LinkedInPost = z.infer<typeof LinkedInPostSchema>;
+
+/* ── ریلز ───────────────────────────────────────────────── */
+
+/**
+ * اسکریپت ریلز — چیزی که قرار است بلند خوانده شود.
+ *
+ * سه بخش جدا نگه داشته می‌شوند (نه یک رشته‌ی یکپارچه) چون هر بخش قاعده‌ی
+ * خودش را دارد و چک‌های قطعی باید بتوانند جداگانه بسنجندشان. چسباندنشان
+ * به هم کارِ ناشر است — یعنی کد، نه مدل.
+ */
+export const ReelsScriptSchema = z.object({
+  title: z.string().min(4),
+  /** قلاب ۳ تا ۵ ثانیه‌ای — کوتاه، بدون سلام و مقدمه */
+  hook: z.string().min(10).transform((s) => clampText(s, 220)),
+  /** بدنه‌ی آموزشی */
+  body: z.string().min(150),
+  /** جمله‌ی دعوت به اقدام، همان‌طور که گفته می‌شود */
+  cta: z.string().min(10),
+  /** شناسه‌ی CTA انتخاب‌شده از فهرست reels-cta.ts */
+  ctaId: z.string().min(2),
+  /** یک جمله: چرا این CTA؟ — بیرون از اسکریپت */
+  ctaReason: z.string().min(10),
+  /** متن روی فریم قلاب — کوتاه، چون روی ویدیو خوانده می‌شود */
+  onScreenText: z.string().min(3).transform((s) => clampText(s, 45)),
+  /** کپشن پیشنهادی — در ریلز جدا از خودِ اسکریپت است */
+  caption: z.string().min(40).transform((s) => clampText(s, 2200)),
+  hashtags: z.array(z.string()).min(3).max(5),
+});
+
+export type ReelsScript = z.infer<typeof ReelsScriptSchema>;
+
+/** روبریک ویراستار اجتماعی — معیارها عمداً با ویراستار بلاگ فرق دارند */
+export const SocialReviewSchema = z.object({
+  score: z.number().min(0).max(100),
+  rubric: z.object({
+    hook: z.number().min(0).max(10),
+    platformFit: z.number().min(0).max(10),
+    brandVoice: z.number().min(0).max(10),
+    clarity: z.number().min(0).max(10),
+    persian: z.number().min(0).max(10),
+  }),
+  issues: z.array(z.string()),
+  verdict: z.enum(["approve", "revise"]),
+});
+
+export type SocialReview = z.infer<typeof SocialReviewSchema>;
 
 export type CriticOutput = z.infer<typeof CriticOutputSchema>;

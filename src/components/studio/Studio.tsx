@@ -2,22 +2,31 @@
 
 import { useState } from "react";
 import { RunPanel } from "./RunPanel";
+import { SocialPanel } from "./SocialPanel";
 import { PostsPanel } from "./PostsPanel";
 import { LessonsPanel } from "./LessonsPanel";
 import { getStudioPassword, setStudioPassword } from "./api";
-import { IconBrain, IconFactory, IconFileText, IconLock } from "@/components/ui/icons";
+import {
+  IconBrain,
+  IconFactory,
+  IconFileText,
+  IconLock,
+  IconShare,
+} from "@/components/ui/icons";
 
 /**
- * استودیوی محتوا — سه تب:
- * ۱. خط تولید: اجرای پایپ‌لاین و تماشای زنده‌ی کار ایجنت‌ها
- * ۲. پست‌ها: مدیریت انتشار (human-in-the-loop) و ثبت بازخورد
- * ۳. درس‌ها: حافظه‌ی خودبهبودی سیستم
+ * استودیوی محتوا — چهار تب:
+ * ۱. خط تولید: اجرای پایپ‌لاین بلاگ و تماشای زنده‌ی کار ایجنت‌ها
+ * ۲. شبکه‌های اجتماعی: بازآفرینی یک مقاله به کاروسل اینستاگرام و پست لینکدین
+ * ۳. پست‌ها: مدیریت انتشار (human-in-the-loop) و ثبت بازخورد
+ * ۴. درس‌ها: حافظه‌ی خودبهبودی سیستم
  */
 
-type Tab = "run" | "posts" | "lessons";
+type Tab = "run" | "social" | "posts" | "lessons";
 
 const TABS: { id: Tab; label: string; icon: (p: { className?: string }) => JSX.Element }[] = [
   { id: "run", label: "خط تولید", icon: IconFactory },
+  { id: "social", label: "شبکه‌های اجتماعی", icon: IconShare },
   { id: "posts", label: "پست‌ها", icon: IconFileText },
   { id: "lessons", label: "درس‌ها", icon: IconBrain },
 ];
@@ -104,6 +113,7 @@ export function Studio() {
       </div>
 
       {tab === "run" && <RunPanel onUnauthorized={onUnauthorized} />}
+      {tab === "social" && <SocialPanel onUnauthorized={onUnauthorized} />}
       {tab === "posts" && <PostsPanel onUnauthorized={onUnauthorized} />}
       {tab === "lessons" && <LessonsPanel onUnauthorized={onUnauthorized} />}
     </main>

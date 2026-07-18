@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "crypto";
-import { getStore, type PipelineRun, type Post, type StepRecord } from "@/lib/store";
+import { getStore, type PipelineRun, type Post } from "@/lib/store";
+import { makeStepRunner } from "./run-steps";
 import { runIdeaScout } from "./idea-scout";
 import { runStrategist } from "./strategist";
 import { runResearcher } from "./researcher";
@@ -39,50 +40,22 @@ export async function runPipeline(opts: {
 
   const run: PipelineRun = {
     id: runId,
+    kind: "blog",
     status: "running",
     topicHint,
     steps: [],
     postId: null,
+    // این دو فقط برای اجرای بازآفرینی معنی دارند
+    sourcePostId: null,
+    socialPostIds: [],
     error: null,
     createdAt: new Date().toISOString(),
     finishedAt: null,
   };
   await store.createRun(run);
 
-  /** ثبت شروع/پایان هر گام + آینه‌کردن آن در دیتابیس */
-  async function step<T>(
-    agent: string,
-    label: string,
-    fn: () => Promise<{ output: T; summary: string }>
-  ): Promise<T> {
-    const record: StepRecord = {
-      agent,
-      label,
-      status: "running",
-      summary: "",
-      output: null,
-      startedAt: new Date().toISOString(),
-      finishedAt: null,
-    };
-    run.steps.push(record);
-    await store.updateRun(runId, { steps: run.steps });
-
-    try {
-      const { output, summary } = await fn();
-      record.status = "done";
-      record.summary = summary;
-      record.output = output;
-      record.finishedAt = new Date().toISOString();
-      await store.updateRun(runId, { steps: run.steps });
-      return output;
-    } catch (err) {
-      record.status = "error";
-      record.summary = err instanceof Error ? err.message : String(err);
-      record.finishedAt = new Date().toISOString();
-      await store.updateRun(runId, { steps: run.steps });
-      throw err;
-    }
-  }
+  // ثبت زنده‌ی گام‌ها — پیاده‌سازی مشترک با ارکستریتور بازآفرینی
+  const step = makeStepRunner(run);
 
   try {
     const existingPosts = await store.listPosts();

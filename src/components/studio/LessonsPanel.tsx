@@ -11,6 +11,7 @@ import { AGENT_ICONS, IconBrain, IconMessage, IconTrash } from "@/components/ui/
  * حافظه‌ی خودکار همان‌قدر مهم است که خود مکانیزم یادگیری.
  */
 
+// ⚠️ ایجنتی که اینجا نباشد، شناسه‌ی انگلیسی خامش در رابط فارسی دیده می‌شود.
 const AGENT_LABELS: Record<string, string> = {
   "idea-scout": "ایده‌یاب",
   strategist: "استراتژیست",
@@ -18,6 +19,14 @@ const AGENT_LABELS: Record<string, string> = {
   writer: "نویسنده",
   editor: "ویراستار",
   seo: "متخصص سئو",
+  // فاز ۴ — محتوای شبکه‌های اجتماعی
+  repurposer: "بازآفرین محتوا",
+  "social-idea-scout": "ایده‌یاب اجتماعی",
+  "instagram-strategist": "استراتژیست اینستاگرام",
+  "instagram-writer": "کپی‌رایتر اینستاگرام",
+  "linkedin-writer": "کپی‌رایتر لینکدین",
+  "reels-writer": "کپی‌رایتر ریلز",
+  "social-editor": "ویراستار اجتماعی",
 };
 
 export function LessonsPanel({ onUnauthorized }: { onUnauthorized: () => void }) {

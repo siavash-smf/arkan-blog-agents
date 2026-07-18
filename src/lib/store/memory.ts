@@ -5,6 +5,8 @@ import type {
   PipelineRun,
   Post,
   PostStatus,
+  SocialPlatform,
+  SocialPost,
 } from "./types";
 
 /**
@@ -19,23 +21,28 @@ import type {
 
 type MemoryState = {
   posts: Map<string, Post>;
+  socialPosts: Map<string, SocialPost>;
   runs: Map<string, PipelineRun>;
   lessons: Map<string, Lesson>;
   feedback: Feedback[];
 };
 
-const g = globalThis as typeof globalThis & { __arkanBlogMemory?: MemoryState };
+// نام کلید را با هر تغییرِ شکلِ state عوض می‌کنیم. state() فقط وقتی
+// مقداردهی می‌کند که کل شیء غایب باشد؛ پس اگر سرور dev از قبل بالا بوده،
+// stateِ جامانده فیلد جدید را ندارد و اولین دسترسی خطا می‌دهد.
+const g = globalThis as typeof globalThis & { __arkanBlogMemoryV2?: MemoryState };
 
 function state(): MemoryState {
-  if (!g.__arkanBlogMemory) {
-    g.__arkanBlogMemory = {
+  if (!g.__arkanBlogMemoryV2) {
+    g.__arkanBlogMemoryV2 = {
       posts: new Map(),
+      socialPosts: new Map(),
       runs: new Map(),
       lessons: new Map(),
       feedback: [],
     };
   }
-  return g.__arkanBlogMemory;
+  return g.__arkanBlogMemoryV2;
 }
 
 export class MemoryStore implements BlogStore {
@@ -80,6 +87,26 @@ export class MemoryStore implements BlogStore {
     return [...state().runs.values()]
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, limit);
+  }
+
+  async createSocialPost(post: SocialPost) {
+    state().socialPosts.set(post.id, post);
+  }
+
+  async updateSocialPost(id: string, patch: Partial<SocialPost>) {
+    const cur = state().socialPosts.get(id);
+    if (cur) state().socialPosts.set(id, { ...cur, ...patch });
+  }
+
+  async getSocialPost(id: string) {
+    return state().socialPosts.get(id) ?? null;
+  }
+
+  async listSocialPosts(opts?: { sourcePostId?: string; platform?: SocialPlatform }) {
+    let all = [...state().socialPosts.values()];
+    if (opts?.sourcePostId) all = all.filter((p) => p.sourcePostId === opts.sourcePostId);
+    if (opts?.platform) all = all.filter((p) => p.platform === opts.platform);
+    return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
   async addLesson(lesson: Lesson) {

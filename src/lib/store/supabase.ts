@@ -6,6 +6,8 @@ import type {
   PipelineRun,
   Post,
   PostStatus,
+  SocialPlatform,
+  SocialPost,
 } from "./types";
 
 /**
@@ -74,10 +76,13 @@ function postFromRow(r: any): Post {
 function runToRow(r: PipelineRun) {
   return {
     id: r.id,
+    kind: r.kind,
     status: r.status,
     topic_hint: r.topicHint,
     steps: r.steps,
     post_id: r.postId,
+    source_post_id: r.sourcePostId,
+    social_post_ids: r.socialPostIds,
     error: r.error,
     created_at: r.createdAt,
     finished_at: r.finishedAt,
@@ -87,13 +92,61 @@ function runToRow(r: PipelineRun) {
 function runFromRow(r: any): PipelineRun {
   return {
     id: r.id,
+    // مقدار پیش‌فرض برای رکوردهای ساخته‌شده پیش از افزودن این سه ستون؛
+    // بدون آن، undefined به کلاینت می‌رسد و رندر تاریخچه می‌شکند.
+    kind: r.kind ?? "blog",
     status: r.status,
     topicHint: r.topic_hint,
     steps: r.steps ?? [],
     postId: r.post_id,
+    sourcePostId: r.source_post_id ?? null,
+    socialPostIds: r.social_post_ids ?? [],
     error: r.error,
     createdAt: r.created_at,
     finishedAt: r.finished_at,
+  };
+}
+
+function socialPostToRow(p: SocialPost) {
+  return {
+    id: p.id,
+    run_id: p.runId,
+    source_post_id: p.sourcePostId,
+    platform: p.platform,
+    format: p.format,
+    title: p.title,
+    body: p.body,
+    slides: p.slides,
+    hashtags: p.hashtags,
+    cta: p.cta,
+    checks: p.checks,
+    extras: p.extras,
+    score: p.score,
+    status: p.status,
+    created_at: p.createdAt,
+    approved_at: p.approvedAt,
+  };
+}
+
+function socialPostFromRow(r: any): SocialPost {
+  return {
+    id: r.id,
+    runId: r.run_id,
+    sourcePostId: r.source_post_id,
+    platform: r.platform,
+    format: r.format,
+    title: r.title,
+    body: r.body,
+    slides: r.slides ?? [],
+    hashtags: r.hashtags ?? [],
+    cta: r.cta ?? "",
+    checks: r.checks ?? [],
+    // رکوردهای ساخته‌شده پیش از افزودن این ستون
+    extras: r.extras ?? {},
+    score: r.score,
+    status: r.status,
+    createdAt: r.created_at,
+    approvedAt: r.approved_at,
   };
 }
 
@@ -173,6 +226,31 @@ export class SupabaseStore implements BlogStore {
       .order("created_at", { ascending: false })
       .limit(limit);
     return (data ?? []).map(runFromRow);
+  }
+
+  async createSocialPost(post: SocialPost) {
+    const { error } = await client().from("social_posts").insert(socialPostToRow(post));
+    if (error) throw new Error(`ثبت محتوای اجتماعی ناموفق بود: ${error.message}`);
+  }
+
+  async updateSocialPost(id: string, patch: Partial<SocialPost>) {
+    const row = partialToRow(patch, socialPostToRow as any);
+    const { error } = await client().from("social_posts").update(row).eq("id", id);
+    if (error) throw new Error(`به‌روزرسانی محتوای اجتماعی ناموفق بود: ${error.message}`);
+  }
+
+  async getSocialPost(id: string) {
+    const { data } = await client().from("social_posts").select("*").eq("id", id).maybeSingle();
+    return data ? socialPostFromRow(data) : null;
+  }
+
+  async listSocialPosts(opts?: { sourcePostId?: string; platform?: SocialPlatform }) {
+    let q = client().from("social_posts").select("*").order("created_at", { ascending: false });
+    if (opts?.sourcePostId) q = q.eq("source_post_id", opts.sourcePostId);
+    if (opts?.platform) q = q.eq("platform", opts.platform);
+    const { data, error } = await q;
+    if (error) throw new Error(`خواندن محتوای اجتماعی ناموفق بود: ${error.message}`);
+    return (data ?? []).map(socialPostFromRow);
   }
 
   async addLesson(lesson: Lesson) {
