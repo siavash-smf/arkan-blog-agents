@@ -53,7 +53,7 @@ export type RunStatus = "running" | "done" | "error";
  * عمداً در دیتابیس فقط text است و check constraint ندارد، چون با هر نوع
  * جدید باید constraint را drop/recreate می‌کردیم.
  */
-export type RunKind = "blog" | "repurpose" | "instagram" | "reels";
+export type RunKind = "blog" | "repurpose" | "instagram" | "reels" | "linkedin" | "campaign";
 
 export type PipelineRun = {
   id: string;
@@ -141,6 +141,47 @@ export type SocialPost = {
   approvedAt: string | null;
 };
 
+/* ── کمپین چندکاناله ────────────────────────────────────── */
+
+export type CampaignChannel = "blog" | "instagram" | "linkedin";
+
+/**
+ * روایت مادر کمپین.
+ *
+ * مثل Slide/SlideSchema: شکل داده اینجا (لایه‌ی ذخیره‌سازی) تعریف می‌شود و
+ * اعتبارسنجی‌اش در agents/types.ts با zod. لایه‌ی store به ایجنت‌ها وابسته
+ * نمی‌شود.
+ */
+export type CampaignNarrativeData = {
+  bigIdea: string;
+  audience: string;
+  tension: string;
+  resolution: string;
+  pillars: string[];
+  blogAngle: string;
+  instagramAngle: string;
+  linkedinAngle: string;
+};
+
+/** اجرای هر کانال، با شناسه‌ی رکورد pipeline_runs خودش */
+export type CampaignRunRef = {
+  channel: CampaignChannel;
+  runId: string;
+  status: RunStatus;
+};
+
+export type Campaign = {
+  id: string;
+  theme: string;
+  /** تا وقتی استراتژیست تمام نشده، خالی است */
+  narrative: CampaignNarrativeData | null;
+  runIds: CampaignRunRef[];
+  status: RunStatus;
+  error: string | null;
+  createdAt: string;
+  finishedAt: string | null;
+};
+
 export type LessonSource = "critic" | "human";
 
 /** «درس» = حافظه‌ی بلندمدت سیستم؛ سوخت خودبهبودی */
@@ -154,9 +195,20 @@ export type Lesson = {
   createdAt: string;
 };
 
+/**
+ * بازخورد روی چه چیزی؟
+ *
+ * پیش از این فقط پست بلاگ بود و ستون post_id کافی. با آمدن سه قالب
+ * اجتماعی، به‌جای یک جدول بازخورد برای هر نوع، هدف را «نوع + شناسه»
+ * کردیم — همان الگویی که در بقیه‌ی سیستم هم هست: یک بار تعمیم، نه یک
+ * بار به‌ازای هر قالب.
+ */
+export type FeedbackTarget = "post" | "social";
+
 export type Feedback = {
   id: string;
-  postId: string;
+  targetType: FeedbackTarget;
+  targetId: string;
   rating: "up" | "down";
   comment: string;
   createdAt: string;
@@ -186,6 +238,12 @@ export interface BlogStore {
     platform?: SocialPlatform;
   }): Promise<SocialPost[]>;
 
+  // کمپین‌های چندکاناله
+  createCampaign(c: Campaign): Promise<void>;
+  updateCampaign(id: string, patch: Partial<Campaign>): Promise<void>;
+  getCampaign(id: string): Promise<Campaign | null>;
+  listCampaigns(limit?: number): Promise<Campaign[]>;
+
   // درس‌ها (حافظه‌ی خودبهبودی)
   addLesson(lesson: Lesson): Promise<void>;
   listLessons(opts?: { agent?: string; activeOnly?: boolean }): Promise<Lesson[]>;
@@ -193,5 +251,5 @@ export interface BlogStore {
 
   // بازخورد انسانی
   addFeedback(fb: Feedback): Promise<void>;
-  listFeedback(postId?: string): Promise<Feedback[]>;
+  listFeedback(opts?: { targetType?: FeedbackTarget; targetId?: string }): Promise<Feedback[]>;
 }

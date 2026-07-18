@@ -23,9 +23,11 @@ const AGENT_LABELS: Record<string, string> = {
   repurposer: "بازآفرین محتوا",
   "social-idea-scout": "ایده‌یاب اجتماعی",
   "instagram-strategist": "استراتژیست اینستاگرام",
+  "linkedin-angle-finder": "زاویه‌یاب لینکدین",
   "instagram-writer": "کپی‌رایتر اینستاگرام",
   "linkedin-writer": "کپی‌رایتر لینکدین",
   "reels-writer": "کپی‌رایتر ریلز",
+  "campaign-strategist": "استراتژیست کمپین",
   "social-editor": "ویراستار اجتماعی",
 };
 

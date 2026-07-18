@@ -12,6 +12,13 @@ import { isSupabaseConfigured } from "@/lib/store";
  * پیش‌نویس می‌ماند تا مدیر در استودیو تصمیم بگیرد.
  *
  * امنیت: Vercel هدر Authorization: Bearer ${CRON_SECRET} را می‌فرستد.
+ *
+ * ⚠️ درس واقعی: نسخه‌ی اول این مسیر fail-open بود — اگر CRON_SECRET ست
+ * نبود، بدون هیچ احراز هویتی اجرا می‌شد. روی پروداکشن یعنی هر کسی با
+ * دانستن آدرس می‌توانست بارها صدایش بزند و بودجه‌ی مدل را بسوزاند (هر
+ * اجرا ۱۰ تا ۱۵ فراخوانی مدل است). حالا fail-closed است: در پروداکشن،
+ * *نبودِ* راز خودش دلیل رد کردن است. در محیط توسعه باز می‌ماند تا تست
+ * محلی ساده بماند.
  */
 
 export const maxDuration = 300;
@@ -19,7 +26,16 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.get("authorization") !== `Bearer ${secret}`) {
+
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      return Response.json(
+        { error: "CRON_SECRET تنظیم نشده است؛ اجرای کرون در پروداکشن غیرفعال است." },
+        { status: 503 }
+      );
+    }
+    // محیط توسعه: بدون راز هم اجازه می‌دهیم
+  } else if (req.headers.get("authorization") !== `Bearer ${secret}`) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 

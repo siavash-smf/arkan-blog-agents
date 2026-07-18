@@ -1,9 +1,11 @@
 import type {
   BlogStore,
+  Campaign,
   Feedback,
   Lesson,
   PipelineRun,
   Post,
+  FeedbackTarget,
   PostStatus,
   SocialPlatform,
   SocialPost,
@@ -21,6 +23,7 @@ import type {
 
 type MemoryState = {
   posts: Map<string, Post>;
+  campaigns: Map<string, Campaign>;
   socialPosts: Map<string, SocialPost>;
   runs: Map<string, PipelineRun>;
   lessons: Map<string, Lesson>;
@@ -30,19 +33,20 @@ type MemoryState = {
 // نام کلید را با هر تغییرِ شکلِ state عوض می‌کنیم. state() فقط وقتی
 // مقداردهی می‌کند که کل شیء غایب باشد؛ پس اگر سرور dev از قبل بالا بوده،
 // stateِ جامانده فیلد جدید را ندارد و اولین دسترسی خطا می‌دهد.
-const g = globalThis as typeof globalThis & { __arkanBlogMemoryV2?: MemoryState };
+const g = globalThis as typeof globalThis & { __arkanBlogMemoryV3?: MemoryState };
 
 function state(): MemoryState {
-  if (!g.__arkanBlogMemoryV2) {
-    g.__arkanBlogMemoryV2 = {
+  if (!g.__arkanBlogMemoryV3) {
+    g.__arkanBlogMemoryV3 = {
       posts: new Map(),
+      campaigns: new Map(),
       socialPosts: new Map(),
       runs: new Map(),
       lessons: new Map(),
       feedback: [],
     };
   }
-  return g.__arkanBlogMemoryV2;
+  return g.__arkanBlogMemoryV3;
 }
 
 export class MemoryStore implements BlogStore {
@@ -109,6 +113,25 @@ export class MemoryStore implements BlogStore {
     return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
+  async createCampaign(c: Campaign) {
+    state().campaigns.set(c.id, c);
+  }
+
+  async updateCampaign(id: string, patch: Partial<Campaign>) {
+    const cur = state().campaigns.get(id);
+    if (cur) state().campaigns.set(id, { ...cur, ...patch });
+  }
+
+  async getCampaign(id: string) {
+    return state().campaigns.get(id) ?? null;
+  }
+
+  async listCampaigns(limit = 20) {
+    return [...state().campaigns.values()]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, limit);
+  }
+
   async addLesson(lesson: Lesson) {
     state().lessons.set(lesson.id, lesson);
   }
@@ -129,10 +152,10 @@ export class MemoryStore implements BlogStore {
     state().feedback.push(fb);
   }
 
-  async listFeedback(postId?: string) {
-    const all = postId
-      ? state().feedback.filter((f) => f.postId === postId)
-      : state().feedback;
+  async listFeedback(opts?: { targetType?: FeedbackTarget; targetId?: string }) {
+    let all = state().feedback;
+    if (opts?.targetType) all = all.filter((f) => f.targetType === opts.targetType);
+    if (opts?.targetId) all = all.filter((f) => f.targetId === opts.targetId);
     return [...all].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 }

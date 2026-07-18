@@ -60,7 +60,7 @@ export function PostsPanel({ onUnauthorized }: { onUnauthorized: () => void }) {
     try {
       const res = await studioFetch("/api/feedback", {
         method: "POST",
-        body: JSON.stringify({ postId, rating, comment }),
+        body: JSON.stringify({ targetType: "post", targetId: postId, rating, comment }),
       });
       const data = await res.json();
       setNotice(

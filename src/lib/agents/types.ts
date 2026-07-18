@@ -139,10 +139,13 @@ export const AGENT_IDS = [
   "repurposer",
   "social-idea-scout",
   "instagram-strategist",
+  "linkedin-angle-finder",
   "instagram-writer",
   "linkedin-writer",
   "reels-writer",
   "social-editor",
+  // فاز ۵ — کمپین چندکاناله
+  "campaign-strategist",
 ] as const;
 
 export const CriticOutputSchema = z.object({
@@ -241,6 +244,35 @@ export const LinkedInPostSchema = z.object({
 });
 
 export type LinkedInPost = z.infer<typeof LinkedInPostSchema>;
+
+/* ── فاز ۵: کمپین چندکاناله ─────────────────────────────── */
+
+/**
+ * روایت مادر کمپین — چیزی که همه‌ی کانال‌ها از آن مشتق می‌شوند.
+ *
+ * چرا این لایه لازم است؟ بدون آن، اگر چهار پایپ‌لاین را با یک «موضوع»
+ * مشترک اجرا کنیم، چهار محتوای بی‌ربط با یک برچسب مشترک می‌گیریم. روایت
+ * مادر همان چیزی است که کمپین را از «چند تولید هم‌زمان» جدا می‌کند.
+ */
+export const CampaignNarrativeSchema = z.object({
+  /** جمله‌ای که کل کمپین حول آن می‌چرخد */
+  bigIdea: z.string().min(20),
+  audience: z.string(),
+  /** تنشی که کمپین به آن می‌پردازد */
+  tension: z.string().min(10),
+  /** پاسخ آرکان به آن تنش */
+  resolution: z.string().min(10),
+  /** ۳ تا ۵ ستون محتوایی که بین کانال‌ها تقسیم می‌شوند */
+  pillars: z.array(z.string()).min(3).max(5),
+  /** موضوع پیشنهادی برای مقاله‌ی بلاگ */
+  blogAngle: z.string().min(10),
+  /** زاویه‌ی کاروسل اینستاگرام */
+  instagramAngle: z.string().min(10),
+  /** مشاهده/زاویه‌ی پست لینکدین */
+  linkedinAngle: z.string().min(10),
+});
+
+export type CampaignNarrative = z.infer<typeof CampaignNarrativeSchema>;
 
 /* ── ریلز ───────────────────────────────────────────────── */
 

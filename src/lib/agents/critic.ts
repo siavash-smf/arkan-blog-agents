@@ -178,8 +178,17 @@ const FeedbackLessonsSchema = z.object({
     .max(2),
 });
 
+/**
+ * بازخورد انسانی → درس.
+ *
+ * ورودی عمداً «عنوان + متن + نوع محتوا» است، نه یک Post. با این کار همان
+ * تابع هم برای مقاله کار می‌کند، هم برای کاروسل و ریلز — بدون شرط اضافه.
+ */
 export async function distillFeedback(input: {
-  post: Post;
+  /** مثلاً «مقاله» یا «کاروسل اینستاگرام» */
+  contentKind: string;
+  title: string;
+  content: string;
   rating: "up" | "down";
   comment: string;
 }): Promise<number> {
@@ -188,10 +197,12 @@ export async function distillFeedback(input: {
 
   const system = `تو «منتقد» سیستم تولید محتوای آرکان هستی. بازخورد انسانی را به درس قابل‌اجرا برای ایجنت‌ها تبدیل می‌کنی.
 ایجنت‌های سیستم: ${AGENT_IDS.join(", ")}
+درس را به ایجنتی نسبت بده که واقعاً مسئول آن ایراد است؛ اگر بازخورد درباره‌ی محتوای اجتماعی است، سراغ ایجنت‌های بلاگ نرو.
 اگر بازخورد آن‌قدر مبهم است که درس عمومی از آن درنمی‌آید، آرایه‌ی خالی بده.`;
 
-  const prompt = `مقاله: «${input.post.title}»
-بخشی از متن: ${input.post.contentMd.slice(0, 2000)}
+  const prompt = `نوع محتوا: ${input.contentKind}
+عنوان: «${input.title}»
+بخشی از متن: ${input.content.slice(0, 2000)}
 
 بازخورد انسان:
 نظر کلی: ${input.rating === "up" ? "👍 مثبت" : "👎 منفی"}

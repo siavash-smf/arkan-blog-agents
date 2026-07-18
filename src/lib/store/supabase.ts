@@ -1,10 +1,12 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type {
   BlogStore,
+  Campaign,
   Feedback,
   Lesson,
   PipelineRun,
   Post,
+  FeedbackTarget,
   PostStatus,
   SocialPlatform,
   SocialPost,
@@ -150,6 +152,35 @@ function socialPostFromRow(r: any): SocialPost {
   };
 }
 
+function campaignToRow(c: Campaign) {
+  return {
+    id: c.id,
+    theme: c.theme,
+    narrative: c.narrative ?? {},
+    run_ids: c.runIds,
+    status: c.status,
+    error: c.error,
+    created_at: c.createdAt,
+    finished_at: c.finishedAt,
+  };
+}
+
+function campaignFromRow(r: any): Campaign {
+  const n = r.narrative;
+  return {
+    id: r.id,
+    theme: r.theme,
+    // شیء خالی یعنی «هنوز ساخته نشده» — به null تبدیلش می‌کنیم تا UI
+    // مجبور نباشد هر دو حالت را بشناسد
+    narrative: n && Object.keys(n).length > 0 ? n : null,
+    runIds: r.run_ids ?? [],
+    status: r.status,
+    error: r.error,
+    createdAt: r.created_at,
+    finishedAt: r.finished_at,
+  };
+}
+
 function lessonFromRow(r: any): Lesson {
   return {
     id: r.id,
@@ -253,6 +284,31 @@ export class SupabaseStore implements BlogStore {
     return (data ?? []).map(socialPostFromRow);
   }
 
+  async createCampaign(c: Campaign) {
+    const { error } = await client().from("content_campaigns").insert(campaignToRow(c));
+    if (error) throw new Error(`ثبت کمپین ناموفق بود: ${error.message}`);
+  }
+
+  async updateCampaign(id: string, patch: Partial<Campaign>) {
+    const row = partialToRow(patch, campaignToRow as any);
+    const { error } = await client().from("content_campaigns").update(row).eq("id", id);
+    if (error) throw new Error(`به‌روزرسانی کمپین ناموفق بود: ${error.message}`);
+  }
+
+  async getCampaign(id: string) {
+    const { data } = await client().from("content_campaigns").select("*").eq("id", id).maybeSingle();
+    return data ? campaignFromRow(data) : null;
+  }
+
+  async listCampaigns(limit = 20) {
+    const { data } = await client()
+      .from("content_campaigns")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    return (data ?? []).map(campaignFromRow);
+  }
+
   async addLesson(lesson: Lesson) {
     const { error } = await client().from("lessons").insert({
       id: lesson.id,
@@ -280,7 +336,10 @@ export class SupabaseStore implements BlogStore {
   async addFeedback(fb: Feedback) {
     const { error } = await client().from("post_feedback").insert({
       id: fb.id,
-      post_id: fb.postId,
+      target_type: fb.targetType,
+      target_id: fb.targetId,
+      // ستون قدیمی: فقط برای بازخورد پست پر می‌شود تا داده‌ی تاریخی سازگار بماند
+      post_id: fb.targetType === "post" ? fb.targetId : null,
       rating: fb.rating,
       comment: fb.comment,
       created_at: fb.createdAt,
@@ -288,13 +347,16 @@ export class SupabaseStore implements BlogStore {
     if (error) throw new Error(`ثبت بازخورد ناموفق بود: ${error.message}`);
   }
 
-  async listFeedback(postId?: string) {
+  async listFeedback(opts?: { targetType?: FeedbackTarget; targetId?: string }) {
     let q = client().from("post_feedback").select("*").order("created_at", { ascending: false });
-    if (postId) q = q.eq("post_id", postId);
+    if (opts?.targetType) q = q.eq("target_type", opts.targetType);
+    if (opts?.targetId) q = q.eq("target_id", opts.targetId);
     const { data } = await q;
     return (data ?? []).map((r: any) => ({
       id: r.id,
-      postId: r.post_id,
+      targetType: r.target_type ?? "post",
+      // رکوردهای قبل از مهاجرت target_id ندارند
+      targetId: r.target_id ?? r.post_id,
       rating: r.rating,
       comment: r.comment,
       createdAt: r.created_at,

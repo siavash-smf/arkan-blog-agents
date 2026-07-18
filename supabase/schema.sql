@@ -129,3 +129,50 @@ alter table pipeline_runs add column if not exists social_post_ids jsonb not nul
 
 create index if not exists idx_social_posts_status on social_posts(status);
 create index if not exists idx_social_posts_source on social_posts(source_post_id);
+
+-- ── عمومی‌کردن بازخورد انسانی ──
+-- جدول post_feedback فقط پست بلاگ را می‌شناخت. حالا که سه نوع محتوای
+-- اجتماعی داریم، به‌جای ساختن یک جدول بازخورد برای هر نوع، هدف را
+-- «نوع + شناسه» می‌کنیم. یک بار مهاجرت، نه یک بار به‌ازای هر قالب جدید.
+alter table post_feedback add column if not exists target_type text not null default 'post';
+alter table post_feedback add column if not exists target_id uuid;
+
+-- پرکردن رکوردهای قدیمی از روی post_id
+update post_feedback set target_id = post_id where target_id is null;
+
+-- post_id دیگر منبع حقیقت نیست؛ نگهش می‌داریم تا داده‌ی قدیمی از دست نرود،
+-- ولی اجباری‌بودنش را برمی‌داریم چون بازخورد اجتماعی post_id ندارد.
+alter table post_feedback alter column post_id drop not null;
+
+create index if not exists idx_feedback_target on post_feedback(target_type, target_id);
+
+-- ───────────────────────────────────────────────
+-- فاز ۵ — کمپین چندکاناله
+-- ───────────────────────────────────────────────
+
+-- یک تم، چند کانال، یک روایت مشترک.
+--
+-- نکته‌ی طراحی: کمپین اجراهای کانال‌ها را «نگه نمی‌دارد»، فقط به آن‌ها
+-- گره می‌زند. هر کانال رکورد pipeline_runs خودش را دارد، چون هرکدام
+-- ممکن است جدا شکست بخورد و باید جدا هم دیده شود. اگر همه را در یک run
+-- می‌ریختیم، شکست یک کانال کل کمپین را «خطا» نشان می‌داد.
+-- ⚠️ نام جدول عمداً content_campaigns است، نه campaigns.
+-- در همین پروژه‌ی Supabase از قبل یک جدول campaigns وجود دارد که متعلق به
+-- CRM است (ستون‌های name/segment_key/goal/sent_at) و داده‌ی واقعی دارد.
+-- «create table if not exists» روی تصادفِ نام، بی‌صدا کاری نمی‌کند — نه خطا
+-- می‌دهد و نه جدول را می‌سازد؛ بعد اولین insert با خطای مبهمِ «ستون پیدا
+-- نشد» می‌شکند. درس: در دیتابیس مشترک، نام جدول را با پیشوند دامنه بگیرید.
+create table if not exists content_campaigns (
+  id           uuid primary key,
+  theme        text not null,
+  -- روایت مادر که همه‌ی کانال‌ها از آن مشتق می‌شوند
+  narrative    jsonb not null default '{}',
+  -- شناسه‌ی اجرای هر کانال: [{ "channel": "blog", "runId": "…" }]
+  run_ids      jsonb not null default '[]',
+  status       text not null default 'running' check (status in ('running','done','error')),
+  error        text,
+  created_at   timestamptz not null default now(),
+  finished_at  timestamptz
+);
+
+create index if not exists idx_content_campaigns_status on content_campaigns(status);

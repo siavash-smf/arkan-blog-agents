@@ -280,6 +280,15 @@ export const IconDownload = (p: IconProps) => (
   </Svg>
 );
 
+/** کمپین — چند لایه روی هم */
+export const IconLayers = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m12 2 9 5-9 5-9-5 9-5Z" />
+    <path d="m3 12 9 5 9-5" />
+    <path d="m3 17 9 5 9-5" />
+  </Svg>
+);
+
 export const IconCopy = (p: IconProps) => (
   <Svg {...p}>
     <rect x="9" y="9" width="12" height="12" rx="2" />
@@ -305,10 +314,12 @@ export const AGENT_ICONS: Record<string, (p: IconProps) => JSX.Element> = {
   repurposer: IconRecycle,
   "social-idea-scout": IconIdea,
   "instagram-strategist": IconTarget,
+  "linkedin-angle-finder": IconTarget,
   "instagram-writer": IconInstagram,
   "linkedin-writer": IconLinkedin,
   "reels-source": IconDownload,
   "reels-writer": IconVideo,
+  "campaign-strategist": IconLayers,
   "social-editor": IconClipboardCheck,
   "social-publisher": IconSend,
 };
