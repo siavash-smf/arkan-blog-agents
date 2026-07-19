@@ -72,8 +72,14 @@ const SHAPE_HINT = `{
 }`;
 
 function sourceBlock(source: ReelsSource): string {
-  return `— ماده‌ی خام (${source.origin}) —
+  if (source.trusted) {
+    return `— ماده‌ی خام (${source.origin}) —
 ${source.text}`;
+  }
+  return `— زاویه‌ی پیشنهادی (این متن را **خود سیستم** تولید کرده، نه یک انسان) —
+${source.text}
+
+⚠️ این متن «واقعیت» نیست، فقط یک جهت است. هر عدد، درصد، آمار یا مثال موردیِ مشخصی که در آن آمده **ساختگی است** و نباید در اسکریپت تو ظاهر شود. فقط موضوع و زاویه را بردار؛ ادعاهای عددی را به بیان کیفی تبدیل کن.`;
 }
 
 export async function runReelsWriter(input: {

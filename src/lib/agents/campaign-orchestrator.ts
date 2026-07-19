@@ -5,12 +5,13 @@ import { runCampaignStrategist } from "./campaign-strategist";
 import { runPipeline } from "./orchestrator";
 import { runInstagramPipeline } from "./instagram-orchestrator";
 import { runLinkedinPipeline } from "./linkedin-orchestrator";
+import { runReelsPipeline } from "./reels-orchestrator";
 
 /**
  * ارکستریتور کمپین — لایه‌ی بالای همه‌ی پایپ‌لاین‌ها.
  *
- * یک تم می‌گیرد، «روایت مادر» می‌سازد، و بعد سه پایپ‌لاین را با زاویه‌ی
- * اختصاصی هرکدام اجرا می‌کند: بلاگ، کاروسل اینستاگرام، پست لینکدین.
+ * یک تم می‌گیرد، «روایت مادر» می‌سازد، و بعد چهار پایپ‌لاین را با زاویه‌ی
+ * اختصاصی هرکدام اجرا می‌کند: بلاگ، کاروسل اینستاگرام، پست لینکدین، ریلز.
  *
  * ── دو تصمیم مهم ──
  *
@@ -21,10 +22,10 @@ import { runLinkedinPipeline } from "./linkedin-orchestrator";
  *    نیست. تفاوت در «مالکیت داده» است، نه در سلیقه: همزمانی وقتی امن است
  *    که هر شاخه صاحب داده‌ی خودش باشد.
  *
- * ۲. **allSettled، نه all.** شکست یک کانال نباید دو کانال دیگر را از بین
- *    ببرد. کمپین با خروجی ناقص هنوز ارزش دارد؛ کمپین بدون خروجی هیچ.
+ * ۲. **allSettled، نه all.** شکست یک کانال نباید بقیه را از بین ببرد.
+ *    کمپین با خروجی ناقص هنوز ارزش دارد؛ کمپین بدون خروجی هیچ.
  *
- * ⚠️ محدودیت واقعی: این اجرا سه پایپ‌لاین کامل است (~۳۰ تا ۴۰ فراخوانی
+ * ⚠️ محدودیت واقعی: این اجرا چهار پایپ‌لاین کامل است (~۴۰ تا ۵۰ فراخوانی
  * مدل) و چند دقیقه طول می‌کشد. روی پلن Hobby ورسل که سقف اجرا ۶۰ ثانیه
  * است، درخواست HTTP قبل از پایان قطع می‌شود — هرچند اجراها در پس‌زمینه
  * ادامه می‌یابند و نتیجه‌شان در دیتابیس می‌نشیند. برای همین استودیو
@@ -66,11 +67,12 @@ export async function runCampaign(opts: {
       { channel: "blog", runId: randomUUID(), status: "running" },
       { channel: "instagram", runId: randomUUID(), status: "running" },
       { channel: "linkedin", runId: randomUUID(), status: "running" },
+      { channel: "reels", runId: randomUUID(), status: "running" },
     ];
     campaign.runIds = refs;
     await store.updateCampaign(campaignId, { runIds: refs });
 
-    // ── ۳. اجرای موازی سه کانال ──
+    // ── ۳. اجرای موازی چهار کانال ──
     const results = await Promise.allSettled([
       runPipeline({
         runId: refs[0].runId,
@@ -88,6 +90,13 @@ export async function runCampaign(opts: {
         // می‌شد — که یک بار در عمل هم اتفاق افتاد.
         observation: narrative.linkedinAngle,
         observationIsTrusted: false,
+      }),
+      runReelsPipeline({
+        runId: refs[3].runId,
+        sourceText: narrative.reelsAngle,
+        // همان دلیل لینکدین: این متن را مدل ساخته، پس جزئیات عددی‌اش
+        // واقعیت نیست و نباید وارد اسکریپت شود.
+        sourceIsTrusted: false,
       }),
     ]);
 

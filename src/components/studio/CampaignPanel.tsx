@@ -12,14 +12,15 @@ import {
   IconLinkedin,
   IconLayers,
   IconSpinner,
+  IconVideo,
   IconX,
 } from "@/components/ui/icons";
 
 /**
  * پنل «کمپین» — لایه‌ی بالای همه‌ی پایپ‌لاین‌ها.
  *
- * یک تم می‌گیرد و سه کانال را هم‌زمان اجرا می‌کند. چون هر کانال رکورد
- * اجرای خودش را دارد، اینجا سه تایم‌لاین جدا نمایش می‌دهیم — و دقیقاً
+ * یک تم می‌گیرد و چهار کانال را هم‌زمان اجرا می‌کند. چون هر کانال رکورد
+ * اجرای خودش را دارد، اینجا چهار تایم‌لاین جدا نمایش می‌دهیم — و دقیقاً
  * به همین دلیل هم موازی‌کردنشان امن بود.
  */
 
@@ -27,6 +28,7 @@ const CHANNEL_META = {
   blog: { label: "مقاله‌ی بلاگ", Icon: IconBook },
   instagram: { label: "کاروسل اینستاگرام", Icon: IconInstagram },
   linkedin: { label: "پست لینکدین", Icon: IconLinkedin },
+  reels: { label: "اسکریپت ریلز", Icon: IconVideo },
 } as const;
 
 type ChannelRun = { channel: keyof typeof CHANNEL_META; run: PipelineRun | null };
@@ -72,7 +74,7 @@ export function CampaignPanel({ onUnauthorized }: { onUnauthorized: () => void }
     setBusy(true);
     const campaignId = crypto.randomUUID();
 
-    // کمپین سه پایپ‌لاین کامل است و ممکن است درخواست HTTP قبل از پایان
+    // کمپین چهار پایپ‌لاین کامل است و ممکن است درخواست HTTP قبل از پایان
     // قطع شود؛ پس تکیه‌ی اصلی روی polling است، نه روی پاسخ POST.
     pollRef.current = setInterval(async () => {
       try {
@@ -120,9 +122,9 @@ export function CampaignPanel({ onUnauthorized }: { onUnauthorized: () => void }
       <section className="rounded-xl2 border border-surface-line bg-surface p-6 shadow-card sm:p-7">
         <h2 className="text-title text-ink">کمپین چندکاناله</h2>
         <p className="mb-5 mt-1 text-sm leading-6 text-ink-muted">
-          یک تم بدهید تا ابتدا «روایت مادر» ساخته شود و بعد هر سه کانال — مقاله،
-          کاروسل و پست لینکدین — با زاویه‌ی اختصاصی خودشان و از دل یک حرف مشترک
-          تولید شوند.
+          یک تم بدهید تا ابتدا «روایت مادر» ساخته شود و بعد هر چهار کانال — مقاله،
+          کاروسل، پست لینکدین و اسکریپت ریلز — با زاویه‌ی اختصاصی خودشان و از دل یک
+          حرف مشترک تولید شوند.
         </p>
 
         <form
@@ -159,7 +161,7 @@ export function CampaignPanel({ onUnauthorized }: { onUnauthorized: () => void }
         </form>
 
         <p className="mt-3 text-xs leading-5 text-ink-muted">
-          هر کمپین سه پایپ‌لاین کامل است (حدود ۳۰ تا ۴۰ فراخوانی مدل) و چند دقیقه
+          هر کمپین چهار پایپ‌لاین کامل است (حدود ۴۰ تا ۵۰ فراخوانی مدل) و چند دقیقه
           طول می‌کشد. اگر صفحه را ببندید، اجرا در سرور ادامه می‌یابد و نتیجه‌اش در
           همین فهرست می‌نشیند.
         </p>
@@ -210,12 +212,13 @@ export function CampaignPanel({ onUnauthorized }: { onUnauthorized: () => void }
           </div>
 
           {/* زاویه‌ی هر کانال — اگر این سه شبیه هم باشند، کمپین شکست خورده */}
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {(
               [
                 ["blog", n.blogAngle],
                 ["instagram", n.instagramAngle],
                 ["linkedin", n.linkedinAngle],
+                ["reels", n.reelsAngle],
               ] as const
             ).map(([ch, angle]) => {
               const meta = CHANNEL_META[ch];

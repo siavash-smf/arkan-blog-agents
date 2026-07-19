@@ -36,6 +36,8 @@ export async function runReelsPipeline(opts: {
   sourceUrl?: string | null;
   sourceText?: string | null;
   leadMagnet?: string | null;
+  /** آیا منبع را انسان داده؟ پیش‌فرض بله. کمپین false می‌فرستد. */
+  sourceIsTrusted?: boolean;
 }): Promise<PipelineRun> {
   const store = getStore();
   const runId = opts.runId;
@@ -70,6 +72,7 @@ export async function runReelsPipeline(opts: {
       source = await prepareReelsSource({
         sourceUrl: opts.sourceUrl,
         sourceText: opts.sourceText,
+        trusted: opts.sourceIsTrusted ?? true,
       });
       return {
         output: {

@@ -143,7 +143,7 @@ export type SocialPost = {
 
 /* ── کمپین چندکاناله ────────────────────────────────────── */
 
-export type CampaignChannel = "blog" | "instagram" | "linkedin";
+export type CampaignChannel = "blog" | "instagram" | "linkedin" | "reels";
 
 /**
  * روایت مادر کمپین.
@@ -161,6 +161,7 @@ export type CampaignNarrativeData = {
   blogAngle: string;
   instagramAngle: string;
   linkedinAngle: string;
+  reelsAngle: string;
 };
 
 /** اجرای هر کانال، با شناسه‌ی رکورد pipeline_runs خودش */

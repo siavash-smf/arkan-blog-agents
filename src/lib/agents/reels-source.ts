@@ -16,6 +16,16 @@ export type ReelsSource = {
   text: string;
   /** برای نمایش در تایم‌لاین و گزارش منتقد */
   origin: string;
+  /**
+   * آیا این متن «واقعیت» است یا خروجی یک ایجنت دیگر؟
+   *
+   * لینک و متنی که انسان می‌دهد، ماده‌ی خام قابل استناد است. ولی وقتی
+   * کمپین زاویه‌ی تولیدشده‌ی استراتژیست را به‌عنوان منبع می‌فرستد، هر عدد
+   * و جزئیاتی که در آن هست ساخته‌ی مدل است. اگر این تمایز را همراه خودِ
+   * منبع حمل نکنیم، توهم یک ایجنت به‌عنوان واقعیت وارد ایجنت بعدی می‌شود
+   * — همان اتفاقی که یک بار در پایپ‌لاین لینکدین افتاد.
+   */
+  trusted: boolean;
 };
 
 /**
@@ -81,13 +91,16 @@ const MIN_USEFUL_CHARS = 200;
 export async function prepareReelsSource(input: {
   sourceUrl?: string | null;
   sourceText?: string | null;
+  /** پیش‌فرض true — ورودی مستقیم انسان. کمپین false می‌فرستد. */
+  trusted?: boolean;
 }): Promise<ReelsSource> {
+  const trusted = input.trusted ?? true;
   const text = input.sourceText?.trim();
   if (text) {
     if (text.length < 40) {
       throw new Error("متن ورودی خیلی کوتاه است؛ چند جمله‌ی بیشتر بدهید.");
     }
-    return { text, origin: "متن ورودی کاربر" };
+    return { text, origin: trusted ? "متن ورودی کاربر" : "زاویه‌ی تولیدشده‌ی کمپین", trusted };
   }
 
   const raw = input.sourceUrl?.trim();
@@ -130,5 +143,5 @@ export async function prepareReelsSource(input: {
   }
 
   // سقف، تا پرامپت متورم نشود
-  return { text: body.slice(0, 12000), origin: url.href };
+  return { text: body.slice(0, 12000), origin: url.href, trusted };
 }

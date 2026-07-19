@@ -270,6 +270,8 @@ export const CampaignNarrativeSchema = z.object({
   instagramAngle: z.string().min(10),
   /** مشاهده/زاویه‌ی پست لینکدین */
   linkedinAngle: z.string().min(10),
+  /** زاویه‌ی ریلز — چیزی که باید گفته شود، نه خوانده */
+  reelsAngle: z.string().min(10),
 });
 
 export type CampaignNarrative = z.infer<typeof CampaignNarrativeSchema>;
