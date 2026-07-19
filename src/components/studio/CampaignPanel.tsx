@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { studioFetch } from "./api";
 import { RunTimeline } from "./RunTimeline";
-import type { Campaign, PipelineRun } from "@/lib/store/types";
+import { SocialPostCard } from "./SocialPostCard";
+import type { Campaign, PipelineRun, Post, SocialPost } from "@/lib/store/types";
 import {
   IconAlert,
   IconBook,
   IconCheck,
+  IconEye,
   IconInstagram,
   IconLinkedin,
   IconLayers,
@@ -31,13 +33,24 @@ const CHANNEL_META = {
   reels: { label: "اسکریپت ریلز", Icon: IconVideo },
 } as const;
 
-type ChannelRun = { channel: keyof typeof CHANNEL_META; run: PipelineRun | null };
+type Channel = keyof typeof CHANNEL_META;
+
+/** اجرای یک کانال به‌همراه خروجی‌اش — هر دو از یک درخواست می‌آیند */
+type ChannelRun = {
+  channel: Channel;
+  run: PipelineRun | null;
+  post: Post | null;
+  socialPosts: SocialPost[];
+};
 
 export function CampaignPanel({ onUnauthorized }: { onUnauthorized: () => void }) {
   const [theme, setTheme] = useState("");
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [runs, setRuns] = useState<ChannelRun[]>([]);
   const [history, setHistory] = useState<Campaign[]>([]);
+  /** کانالی که کاربر رویش کلیک کرده و خروجی‌اش نمایش داده می‌شود */
+  const [active, setActive] = useState<Channel | null>(null);
+  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -65,12 +78,40 @@ export function CampaignPanel({ onUnauthorized }: { onUnauthorized: () => void }
       const data = await res.json();
       setCampaign(data.campaign);
       setRuns(data.runs);
+      // اولین کانالی که خروجی دارد را باز می‌کنیم تا کاربر با صفحه‌ی
+      // خالی روبه‌رو نشود؛ اگر هیچ‌کدام آماده نبود، اولی.
+      setActive((cur) => {
+        if (cur) return cur;
+        const ready = data.runs.find(
+          (r: ChannelRun) => r.post || r.socialPosts.length > 0
+        );
+        return (ready ?? data.runs[0])?.channel ?? null;
+      });
+    }
+  }
+
+  async function setSocialStatus(post: SocialPost, status: "draft" | "approved") {
+    await studioFetch(`/api/social/posts/${post.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    });
+    if (campaign) openCampaign(campaign.id);
+  }
+
+  async function copy(text: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setNotice(`${label} در کلیپ‌بورد کپی شد.`);
+    } catch {
+      setNotice("کپی ناموفق بود — متن را دستی انتخاب کنید.");
     }
   }
 
   async function start() {
     if (!theme.trim()) return;
     setError("");
+    setNotice("");
+    setActive(null);
     setBusy(true);
     const campaignId = crypto.randomUUID();
 
@@ -115,6 +156,7 @@ export function CampaignPanel({ onUnauthorized }: { onUnauthorized: () => void }
   }
 
   const n = campaign?.narrative;
+  const activeRun = runs.find((r) => r.channel === active) ?? null;
 
   return (
     <div className="space-y-6">
@@ -236,23 +278,145 @@ export function CampaignPanel({ onUnauthorized }: { onUnauthorized: () => void }
         </section>
       )}
 
-      {/* ── سه تایم‌لاین موازی ── */}
-      {runs.map(({ channel, run }) => {
-        const meta = CHANNEL_META[channel];
-        if (!run) {
-          return (
-            <div
-              key={channel}
-              className="flex items-center gap-3 rounded-xl2 border border-dashed border-surface-line bg-surface px-6 py-5 text-sm text-ink-muted"
-            >
-              <IconSpinner className="h-4 w-4" />
-              <meta.Icon className="h-4 w-4" />
-              {meta.label} — در انتظار شروع…
-            </div>
-          );
-        }
-        return <RunTimeline key={channel} run={run} badge={meta.label} />;
-      })}
+      {/* ── انتخاب کانال: روی هرکدام کلیک کنید تا خروجی‌اش را ببینید ── */}
+      {runs.length > 0 && (
+        <section className="rounded-xl2 border border-surface-line bg-surface p-3 shadow-card">
+          <div role="tablist" className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+            {runs.map(({ channel, run, post, socialPosts }) => {
+              const meta = CHANNEL_META[channel];
+              const isActive = active === channel;
+              const outputCount = (post ? 1 : 0) + socialPosts.length;
+              return (
+                <button
+                  key={channel}
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setActive(channel)}
+                  className={`flex cursor-pointer flex-col items-start gap-1.5 rounded-xl px-4 py-3 text-right transition-all ${
+                    isActive
+                      ? "bg-pine text-bone shadow-card"
+                      : "bg-surface-dim text-ink hover:bg-surface hover:shadow-card"
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2 text-sm font-bold">
+                    <meta.Icon className="h-4 w-4" />
+                    {meta.label}
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1.5 text-xs ${
+                      isActive ? "text-bone/70" : "text-ink-muted"
+                    }`}
+                  >
+                    {!run ? (
+                      <>
+                        <IconSpinner className="h-3 w-3" />
+                        در انتظار شروع
+                      </>
+                    ) : run.status === "running" ? (
+                      <>
+                        <IconSpinner className="h-3 w-3" />
+                        در حال اجرا
+                      </>
+                    ) : run.status === "error" ? (
+                      <>
+                        <IconX className="h-3 w-3" />
+                        خطا
+                      </>
+                    ) : (
+                      <>
+                        <IconCheck className="h-3 w-3" />
+                        {outputCount > 0 ? "آماده — کلیک کنید" : "بدون خروجی"}
+                      </>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* ── خروجی کانال انتخاب‌شده ── */}
+      {activeRun && (
+        <>
+          {/* بلاگ خروجی متفاوتی دارد، پس رندر مخصوص خودش */}
+          {activeRun.post && (
+            <article className="rounded-xl2 border border-surface-line bg-surface p-6 shadow-card sm:p-7">
+              <header className="mb-3 flex flex-wrap items-center gap-2">
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
+                    activeRun.post.status === "published"
+                      ? "bg-success-soft text-success"
+                      : "bg-warn-soft text-warn"
+                  }`}
+                >
+                  {activeRun.post.status === "published" ? "منتشرشده" : "پیش‌نویس"}
+                </span>
+                {activeRun.post.score != null && (
+                  <span className="rounded-full bg-surface-dim px-3 py-1 text-xs text-ink-muted">
+                    امتیاز ویراستار: {activeRun.post.score.toLocaleString("fa-IR")}/۱۰۰
+                  </span>
+                )}
+              </header>
+
+              <h3 className="mb-1.5 font-extrabold leading-8 text-ink">
+                {activeRun.post.title}
+              </h3>
+              <p className="mb-4 text-sm leading-7 text-ink-muted">
+                {activeRun.post.excerpt}
+              </p>
+
+              <div className="max-h-96 overflow-auto whitespace-pre-line rounded-xl bg-surface-dim p-4 text-sm leading-8 text-ink-soft">
+                {activeRun.post.contentMd}
+              </div>
+
+              {activeRun.post.status === "published" && (
+                <a
+                  href={`/blog/${activeRun.post.slug}`}
+                  target="_blank"
+                  className="mt-4 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-surface-line px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:border-brand-300 hover:text-brand-700"
+                >
+                  <IconEye className="h-4 w-4" />
+                  مشاهده در بلاگ
+                </a>
+              )}
+            </article>
+          )}
+
+          {/* کانال‌های اجتماعی — همان کارتی که در تب شبکه‌های اجتماعی است */}
+          {activeRun.socialPosts.map((sp) => (
+            <SocialPostCard
+              key={sp.id}
+              post={sp}
+              onCopy={copy}
+              onSetStatus={setSocialStatus}
+              onNotice={setNotice}
+              onUnauthorized={onUnauthorized}
+            />
+          ))}
+
+          {/* اجرای تمام‌شده‌ای که خروجی ندارد یعنی جایی از زنجیره شکسته */}
+          {activeRun.run &&
+            activeRun.run.status !== "running" &&
+            !activeRun.post &&
+            activeRun.socialPosts.length === 0 && (
+              <p className="rounded-xl2 border border-dashed border-surface-line bg-surface px-6 py-5 text-sm leading-7 text-ink-muted">
+                این کانال خروجی ندارد. تایم‌لاین پایین نشان می‌دهد کجا متوقف شده.
+              </p>
+            )}
+
+          {/* تایم‌لاین همان کانال */}
+          {activeRun.run && (
+            <RunTimeline run={activeRun.run} badge={CHANNEL_META[active!].label} />
+          )}
+        </>
+      )}
+
+      {notice && (
+        <p className="rounded-xl bg-success-soft px-4 py-3 text-sm text-success" role="status">
+          {notice}
+        </p>
+      )}
 
       {/* ── تاریخچه ── */}
       {history.length > 0 && (
@@ -262,7 +426,10 @@ export function CampaignPanel({ onUnauthorized }: { onUnauthorized: () => void }
             {history.map((c) => (
               <button
                 key={c.id}
-                onClick={() => openCampaign(c.id)}
+                onClick={() => {
+                  setActive(null);
+                  openCampaign(c.id);
+                }}
                 className="flex w-full cursor-pointer items-center gap-3 px-2 py-3 text-right text-sm transition-colors hover:bg-surface-dim"
               >
                 {c.status === "done" ? (

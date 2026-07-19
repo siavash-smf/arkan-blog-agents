@@ -74,13 +74,19 @@ export async function runCampaign(opts: {
 
     // ── ۳. اجرای موازی چهار کانال ──
     const results = await Promise.allSettled([
+      // ⚠️ برای بلاگ و اینستاگرام، «ایده‌ی بزرگ» را هم به راهنمای موضوع
+      // می‌چسبانیم. دلیلش را در عمل دیدیم: این دو پایپ‌لاین بعد از گرفتن
+      // راهنما، خودشان ایده تولید می‌کنند و بعد یکی را انتخاب می‌کنند —
+      // یعنی دو فرصت برای دورشدن از تم. در اولین اجرای چهارکاناله، تم
+      // درباره‌ی جلسه‌ها بود ولی مقاله درباره‌ی «تصمیم‌گیری در بازار
+      // پرنوسان» درآمد. لنگر انداختن روی bigIdea این فاصله را می‌بندد.
       runPipeline({
         runId: refs[0].runId,
-        topicHint: narrative.blogAngle,
+        topicHint: `${narrative.bigIdea} — زاویه‌ی این مقاله: ${narrative.blogAngle}`,
       }),
       runInstagramPipeline({
         runId: refs[1].runId,
-        topicHint: narrative.instagramAngle,
+        topicHint: `${narrative.bigIdea} — زاویه‌ی این کاروسل: ${narrative.instagramAngle}`,
       }),
       runLinkedinPipeline({
         runId: refs[2].runId,
